@@ -138,3 +138,6 @@ async def websocket_chat(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
