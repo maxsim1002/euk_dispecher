@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+
+        .header {
+            background: #1a1a2e;
+            color: white;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+        }
+        .header h1 { font-size: 17px; }
+
+        .content { padding: 16px; max-width: 700px; margin: 0 auto; }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card h2 { font-size: 15px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .ticket-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
+        .ticket-desc { color: #555; font-size: 15px; line-height: 1.5; }
+
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .status-btn {
+            padding: 8px 14px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            background: white;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .status-btn.active-new { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .status-btn.active-in_progress { background: #cce5ff; border-color: #4a90e2; color: #004085; }
+        .status-btn.active-done { background: #d4edda; border-color: #28a745; color: #155724; }
+        .status-btn.active-rejected { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .status-btn.active-postponed { background: #e2e3e5; border-color: #6c757d; color: #383d41; }
+
+        .meta-row { display: flex; flex-direction: column; gap: 8px; }
+        .meta-item { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .meta-label { color: #888; }
+        .meta-value { font-weight: bold; color: #333; }
+
+        select, input[type="datetime-local"] {
+            padding: 8px 10px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .comment {
+            border-left: 3px solid #4a90e2;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            background: #f8f9ff;
+            border-radius: 0 8px 8px 0;
+        }
+        .comment-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .comment-author { font-weight: bold; font-size: 13px; color: #4a90e2; }
+        .comment-time { font-size: 11px; color: #aaa; }
+        .comment-text { font-size: 14px; color: #333; line-height: 1.4; }
+        .comment-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .comment-photos img {
+            width: 80px; height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .add-comment textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 15px;
+            resize: none;
+            height: 80px;
+            outline: none;
+            margin-bottom: 10px;
+        }
+        .add-comment textarea:focus { border-color: #4a90e2; }
+
+        .photo-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .photo-preview img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background: #4a90e2; color: white; }
+        .btn-photo { background: #f0f0f0; color: #333; }
+        .btn-camera { background: #e8f5e9; color: #2e7d32; }
+        .btn-export { background: #e8f5e9; color: #155724; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img { max-width: 95%; max-height: 95%; border-radius: 8px; }
+
+        .report-area {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+            outline: none;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="back-btn" onclick="history.back()">←</button>
+    <h1 id="header-title">Заявка #...</h1>
+</div>
+
+<div class="content">
+
+    <!-- Основная информация -->
+    <div class="card">
+        <div class="ticket-title" id="ticket-title">Загрузка...</div>
+        <div class="ticket-desc" id="ticket-desc"></div>
+    </div>
+
+    <!-- Статус -->
+    <div class="card">
+        <h2>Статус</h2>
+        <div class="status-row" id="status-row"></div>
+    </div>
+
+    <!-- Детали -->
+    <div class="card">
+        <h2>Детали</h2>
+        <div class="meta-row">
+            <div class="meta-item">
+                <span class="meta-label">Приоритет</span>
+                <span class="meta-value" id="ticket-priority"></span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Создана</span>
+                <span class="meta-value" id="ticket-created"></span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Исполнитель</span>
+                <select id="assignee-select" onchange="updateAssignee()">
+                    <option value="">— Не назначен —</option>
+                </select>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Срок исполнения</span>
+                <input type="datetime-local" id="deadline-input" onchange="updateDeadline()" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Отчёт о выполнении -->
+    <div class="card">
+        <h2>Отчёт о выполнении</h2>
+        <textarea class="report-area" id="report-text" placeholder="Опишите что было сделано, какие материалы использованы, время работы..."></textarea>
+        <br><br>
+        <div class="btn-row">
+            <button class="btn btn-save" onclick="saveReport()">������ Сохранить отчёт</button>
+            <button class="btn btn-export" onclick="exportToExcel()">������ Экспорт в Excel</button>
+        </div>
+    </div>
+
+    <!-- Комментарии -->
+    <div class="card">
+        <h2>Хронология</h2>
+        <div id="comments-list"></div>
+
+        <div class="add-comment">
+            <textarea id="comment-text" placeholder="Добавить комментарий..."></textarea>
+            <div class="photo-preview" id="photo-preview"></div>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="addComment()">������ Отправить</button>
+                <button class="btn btn-camera" onclick="openCamera()">������ Камера</button>
+                <button class="btn btn-photo" onclick="openGallery()">������️ Галерея</button>
+            </div>
+            <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" multiple onchange="previewPhotos(this)" />
+            <input type="file" id="gallery-input" accept="image/*" style="display:none" multiple onchange="previewPhotos(this)" />
+        </div>
+    </div>
+
+</div>
+
+<!-- Лайтбокс для фото -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" />
+</div>
+
+<script>
+    const ticketId = new URLSearchParams(window.location.search).get('id');
+    let currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    let ticket = null;
+    let selectedFiles = [];
+
+    const statuses = [
+        { key: 'new', label: '������ Новая' },
+        { key: 'in_progress', label: '������ В работе' },
+        { key: 'done', label: '✅ Выполнено' },
+        { key: 'rejected', label: '❌ Отказано' },
+        { key: 'postponed', label: '⏰ Перенос' }
+    ];
+
+    const priorityLabels = { normal: 'Обычный', high: '⚠️ Высокий', critical: '������ Критический' };
+
+    async function init() {
+        if (!ticketId) { history.back(); return; }
+        await loadTicket();
+        await loadUsers();
+        await loadComments();
+    }
+
+    async function loadTicket() {
+        const res = await fetch(`/tickets/${ticketId}`, { credentials: 'include' });
+        ticket = await res.json();
+
+        document.getElementById('header-title').textContent = `Заявка #${ticket.id}`;
+        document.getElementById('ticket-title').textContent = ticket.title;
+        document.getElementById('ticket-desc').textContent = ticket.description;
+        document.getElementById('ticket-priority').textContent = priorityLabels[ticket.priority] || ticket.priority;
+        document.getElementById('ticket-created').textContent = new Date(ticket.created_at).toLocaleString('ru');
+        if (ticket.report) document.getElementById('report-text').value = ticket.report;
+        if (ticket.deadline) {
+            const d = new Date(ticket.deadline);
+            document.getElementById('deadline-input').value = d.toISOString().slice(0,16);
+        }
+
+        renderStatuses();
+    }
+
+    function renderStatuses() {
+        const isAdmin = currentUser.role === 'admin';
+        const isAssignee = ticket.assigned_to === currentUser.id;
+        const canChange = isAdmin || isAssignee;
+
+        const row = document.getElementById('status-row');
+        row.innerHTML = statuses.map(s => `
+            <button class="status-btn ${ticket.status === s.key ? 'active-' + s.key : ''}"
+                onclick="${canChange ? `changeStatus('${s.key}')` : 'alert(\"Нет прав для изменения статуса\")'}"
+                style="${!canChange ? 'opacity:0.6;cursor:default;' : ''}">
+                ${s.label}
+            </button>
+        `).join('');
+    }
+
+    async function changeStatus(status) {
+        await fetch(`/tickets/${ticketId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status }),
+            credentials: 'include'
+        });
+        ticket.status = status;
+        renderStatuses();
+    }
+
+    async function loadUsers() {
+        const res = await fetch('/auth/users', { credentials: 'include' });
+        const users = await res.json();
+        const select = document.getElementById('assignee-select');
+        users.filter(u => u.role === 'executor' || u.role === 'dispatcher').forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.full_name;
+            if (u.id === ticket.assigned_to) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        if (currentUser.role !== 'admin') {
+            select.disabled = true;
+        }
+    }
+
+    async function updateAssignee() {
+        const assigned_to = parseInt(document.getElementById('assignee-select').value) || null;
+        await fetch(`/tickets/${ticketId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assigned_to }),
+            credentials: 'include'
+        });
+    }
+
+    async function updateDeadline() {
+        const deadline = document.getElementById('deadline-input').value;
+        await fetch(`/tickets/${ticketId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ deadline }),
+            credentials: 'include'
+        });
+    }
+
+    async function saveReport() {
+        const report = document.getElementById('report-text').value;
+        await fetch(`/tickets/${ticketId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ report }),
+            credentials: 'include'
+        });
+        alert('Отчёт сохранён!');
+    }
+
+    async function loadComments() {
+        const res = await fetch(`/tickets/${ticketId}/comments`, { credentials: 'include' });
+        const comments = await res.json();
+        const list = document.getElementById('comments-list');
+        if (!comments.length) {
+            list.innerHTML = '<div style="color:#aaa;font-size:14px;margin-bottom:16px;">Комментариев пока нет</div>';
+            return;
+        }
+        list.innerHTML = comments.map(c => `
+            <div class="comment">
+                <div class="comment-header">
+                    <span class="comment-author">${c.full_name}</span>
+                    <span class="comment-time">${new Date(c.created_at).toLocaleString('ru')}</span>
+                </div>
+                <div class="comment-text">${c.text}</div>
+                ${c.photos && c.photos.length ? `
+                    <div class="comment-photos">
+                        ${c.photos.map(p => `<img src="/uploads/${p}" onclick="openLightbox('/uploads/${p}')" />`).join('')}
+                    </div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function openCamera() { document.getElementById('camera-input').click(); }
+    function openGallery() { document.getElementById('gallery-input').click(); }
+
+    function previewPhotos(input) {
+        selectedFiles = Array.from(input.files);
+        const preview = document.getElementById('photo-preview');
+        preview.innerHTML = '';
+        selectedFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function addComment() {
+        const text = document.getElementById('comment-text').value.trim();
+        if (!text) { alert('Введите комментарий'); return; }
+
+        const formData = new FormData();
+        formData.append('text', text);
+        selectedFiles.forEach(f => formData.append('photos', f));
+
+        await fetch(`/tickets/${ticketId}/comments`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+
+        document.getElementById('comment-text').value = '';
+        document.getElementById('photo-preview').innerHTML = '';
+        selectedFiles = [];
+        await loadComments();
+    }
+
+    function exportToExcel() {
+        const report = document.getElementById('report-text').value;
+        const rows = [
+            ['Поле', 'Значение'],
+            ['Номер заявки', ticket.id],
+            ['Заголовок', ticket.title],
+            ['Описание', ticket.description],
+            ['Статус', ticket.status],
+            ['Приоритет', ticket.priority],
+            ['Создана', new Date(ticket.created_at).toLocaleString('ru')],
+            ['Срок', ticket.deadline ? new Date(ticket.deadline).toLocaleString('ru') : '—'],
+            ['Отчёт', report]
+        ];
+
+        let csv = '\uFEFF';
+        rows.forEach(row => {
+            csv += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Заявка_${ticket.id}.csv`;
+        a.click();
+    }
+
+    function openLightbox(src) {
+        document.getElementById('lightbox-img').src = src;
+        document.getElementById('lightbox').classList.add('open');
+    }
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('open');
+    }
+
+    init();
+</script>
+</body>
+</html>
