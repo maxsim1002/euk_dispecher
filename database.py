@@ -1,6 +1,9 @@
 import sqlite3
 import os
 from dotenv import load_dotenv
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 load_dotenv()
 DB_PATH = os.getenv("DB_PATH", "dispatch.db")
