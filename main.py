@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from database import get_db, init_db
 from auth import router as auth_router, get_current_user
-from tickets import router as tickets_router
+from tickets import router as tickets_router, admin_router
 import os
 import json
 from passlib.context import CryptContext
@@ -26,6 +26,7 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.include_router(auth_router)
 app.include_router(tickets_router)
+app.include_router(admin_router)
 
 @app.on_event("startup")
 async def startup():
@@ -34,6 +35,14 @@ async def startup():
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
+
+@app.get("/admin")
+async def admin_page(request: Request):
+    user = get_current_user(request)  # Проверка авторизации
+    if user.get("role") != "admin":
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/", status_code=303)
+    return FileResponse("static/admin.html")
 
 @app.get("/static/{filename}")
 async def static_files(filename: str):

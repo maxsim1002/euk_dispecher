@@ -177,6 +177,10 @@
         <h2>Детали</h2>
         <div class="meta-row">
             <div class="meta-item">
+                <span class="meta-label">Тип</span>
+                <span class="meta-value" id="ticket-type"></span>
+            </div>
+            <div class="meta-item">
                 <span class="meta-label">Приоритет</span>
                 <span class="meta-value" id="ticket-priority"></span>
             </div>
@@ -203,8 +207,8 @@
         <textarea class="report-area" id="report-text" placeholder="Опишите что было сделано, какие материалы использованы, время работы..."></textarea>
         <br><br>
         <div class="btn-row">
-            <button class="btn btn-save" onclick="saveReport()">������ Сохранить отчёт</button>
-            <button class="btn btn-export" onclick="exportToExcel()">������ Экспорт в Excel</button>
+            <button class="btn btn-save" onclick="saveReport()">������ Сохранить отчёт</button>
+            <button class="btn btn-export" onclick="exportToExcel()">������ Экспорт в Excel</button>
         </div>
     </div>
 
@@ -217,9 +221,9 @@
             <textarea id="comment-text" placeholder="Добавить комментарий..."></textarea>
             <div class="photo-preview" id="photo-preview"></div>
             <div class="btn-row">
-                <button class="btn btn-primary" onclick="addComment()">������ Отправить</button>
-                <button class="btn btn-camera" onclick="openCamera()">������ Камера</button>
-                <button class="btn btn-photo" onclick="openGallery()">������️ Галерея</button>
+                <button class="btn btn-primary" onclick="addComment()">������ Отправить</button>
+                <button class="btn btn-camera" onclick="openCamera()">������ Камера</button>
+                <button class="btn btn-photo" onclick="openGallery()">������️ Галерея</button>
             </div>
             <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" multiple onchange="previewPhotos(this)" />
             <input type="file" id="gallery-input" accept="image/*" style="display:none" multiple onchange="previewPhotos(this)" />
@@ -240,14 +244,14 @@
     let selectedFiles = [];
 
     const statuses = [
-        { key: 'new', label: '������ Новая' },
-        { key: 'in_progress', label: '������ В работе' },
+        { key: 'new', label: '������ Новая' },
+        { key: 'in_progress', label: '������ В работе' },
         { key: 'done', label: '✅ Выполнено' },
         { key: 'rejected', label: '❌ Отказано' },
         { key: 'postponed', label: '⏰ Перенос' }
     ];
 
-    const priorityLabels = { normal: 'Обычный', high: '⚠️ Высокий', critical: '������ Критический' };
+    const priorityLabels = { normal: 'Обычный', high: '⚠️ Высокий', critical: '������ Критический' };
 
     async function init() {
         if (!ticketId) { history.back(); return; }
@@ -263,6 +267,7 @@
         document.getElementById('header-title').textContent = `Заявка #${ticket.id}`;
         document.getElementById('ticket-title').textContent = ticket.title;
         document.getElementById('ticket-desc').textContent = ticket.description;
+        document.getElementById('ticket-type').textContent = ticket.type || 'Прочие';
         document.getElementById('ticket-priority').textContent = priorityLabels[ticket.priority] || ticket.priority;
         document.getElementById('ticket-created').textContent = new Date(ticket.created_at).toLocaleString('ru');
         if (ticket.report) document.getElementById('report-text').value = ticket.report;

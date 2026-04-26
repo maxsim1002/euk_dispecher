@@ -1,319 +1,949 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Диспетчер</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Диспетчер</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<style>
+:root {
+  --md-primary: #1565C0;
+  --md-primary-light: #1976D2;
+  --md-primary-dark: #0D47A1;
+  --md-secondary: #0288D1;
+  --md-surface: #FFFFFF;
+  --md-background: #F5F7FA;
+  --md-on-primary: #FFFFFF;
+  --md-on-surface: #212121;
+  --md-on-surface-medium: #616161;
+  --md-on-surface-disabled: #9E9E9E;
+  --md-divider: #E0E0E0;
+  --md-error: #D32F2F;
+  --md-warning: #F57C00;
+  --md-success: #388E3C;
+  --md-info: #0288D1;
+  --md-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --md-elevation-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  --md-elevation-4: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+}
 
-        .header {
-            background: #1a1a2e;
-            color: white;
-            padding: 14px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header h1 { font-size: 18px; }
-        .header-right { display: flex; align-items: center; gap: 10px; }
-        .user-info { font-size: 13px; color: #aaa; }
-        .logout-btn {
-            background: #e74c3c; color: white;
-            border: none; padding: 7px 12px;
-            border-radius: 8px; cursor: pointer; font-size: 13px;
-        }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        .nav {
-            display: flex; background: white;
-            border-bottom: 2px solid #eee; overflow-x: auto;
-        }
-        .nav-btn {
-            padding: 13px 18px; border: none; background: none;
-            cursor: pointer; font-size: 14px; color: #666;
-            white-space: nowrap; border-bottom: 3px solid transparent;
-        }
-        .nav-btn.active { color: #4a90e2; border-bottom-color: #4a90e2; font-weight: bold; }
+body {
+  font-family: 'Roboto', sans-serif;
+  background: var(--md-background);
+  color: var(--md-on-surface);
+  min-height: 100vh;
+}
 
-        .content { padding: 16px; max-width: 1200px; margin: 0 auto; }
+/* ── APP BAR ── */
+.app-bar {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--md-elevation-2);
+}
+.app-bar-title {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  flex: 1;
+}
+.app-bar-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  width: 40px; height: 40px;
+  border: none; background: none; color: inherit;
+  border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  transition: background 0.2s;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.12); }
+.icon-btn .material-icons { font-size: 24px; }
+.user-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px 4px 4px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.15);
+  font-size: 13px;
+  font-weight: 500;
+  margin-right: 4px;
+}
+.user-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
 
-        /* Фильтры */
-        .filters {
-            background: white; border-radius: 12px;
-            padding: 14px 16px; margin-bottom: 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
-        }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-group label { font-size: 12px; color: #888; font-weight: bold; }
-        .filter-group select, .filter-group input {
-            padding: 8px 10px; border: 2px solid #eee;
-            border-radius: 8px; font-size: 14px; outline: none;
-            min-width: 140px;
-        }
-        .filter-group select:focus, .filter-group input:focus { border-color: #4a90e2; }
-        .btn-reset {
-            padding: 8px 14px; background: #eee; border: none;
-            border-radius: 8px; cursor: pointer; font-size: 13px;
-            color: #555; font-weight: bold; align-self: flex-end;
-        }
+/* ── BOTTOM NAV (mobile) ── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--md-surface);
+  display: flex;
+  border-top: 1px solid var(--md-divider);
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+.bottom-nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 8px 4px 10px;
+  border: none; background: none; cursor: pointer;
+  color: var(--md-on-surface-medium);
+  font-size: 10px; font-weight: 500; letter-spacing: 0.4px;
+  gap: 2px; text-transform: uppercase;
+  transition: color 0.2s;
+  position: relative;
+}
+.bottom-nav-item.active { color: var(--md-primary); }
+.bottom-nav-item .material-icons { font-size: 22px; }
+.bottom-nav-indicator {
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 64px; height: 3px;
+  background: var(--md-primary);
+  border-radius: 0 0 3px 3px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.bottom-nav-item.active .bottom-nav-indicator { opacity: 1; }
 
-        /* Таблица */
-        .table-wrap {
-            background: white; border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            overflow-x: auto;
-        }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
-        thead { background: #1a1a2e; color: white; }
-        th {
-            padding: 12px 14px; text-align: left; font-size: 13px;
-            cursor: pointer; user-select: none; white-space: nowrap;
-        }
-        th:hover { background: #2d2d4e; }
-        th .sort-icon { margin-left: 4px; opacity: 0.5; }
-        th.sorted .sort-icon { opacity: 1; }
-        td { padding: 11px 14px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f8f9ff; cursor: pointer; }
+/* ── TOP NAV (desktop) ── */
+.top-nav {
+  display: none;
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--md-divider);
+  padding: 0 16px;
+}
+.top-nav-item {
+  padding: 14px 20px;
+  border: none; background: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.1px;
+  color: var(--md-on-surface-medium);
+  border-bottom: 3px solid transparent;
+  display: flex; align-items: center; gap: 6px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.top-nav-item.active { color: var(--md-primary); border-bottom-color: var(--md-primary); }
+.top-nav-item .material-icons { font-size: 18px; }
 
-        .status-badge {
-            padding: 4px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: bold; white-space: nowrap;
-        }
-        .status-new { background: #fff3cd; color: #856404; }
-        .status-in_progress { background: #cce5ff; color: #004085; }
-        .status-done { background: #d4edda; color: #155724; }
-        .status-rejected { background: #f8d7da; color: #721c24; }
-        .status-postponed { background: #e2e3e5; color: #383d41; }
+@media (min-width: 768px) {
+  .bottom-nav { display: none; }
+  .top-nav { display: flex; }
+  .app-bar { height: 64px; padding: 0 16px; }
+  .app-bar-title { font-size: 22px; }
+}
 
-        .priority-badge {
-            font-size: 12px; font-weight: bold;
-        }
-        .priority-normal { color: #555; }
-        .priority-high { color: #e67e22; }
-        .priority-critical { color: #e74c3c; }
+/* ── CONTENT ── */
+.content {
+  padding: 12px 12px 80px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media (min-width: 768px) {
+  .content { padding: 20px 24px 24px; }
+}
 
-        .empty-row td { text-align: center; padding: 40px; color: #aaa; font-size: 15px; }
+/* ── STATS ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+@media (min-width: 480px) { .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; } }
+@media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(5, 1fr); margin-bottom: 20px; gap: 16px; } }
 
-        .stats-row {
-            display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
-        }
-        .stat-card {
-            background: white; border-radius: 10px;
-            padding: 14px 18px; flex: 1; min-width: 120px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center;
-        }
-        .stat-num { font-size: 26px; font-weight: bold; color: #1a1a2e; }
-        .stat-label { font-size: 12px; color: #888; margin-top: 2px; }
+.stat-card {
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--md-elevation-1);
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  gap: 2px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.stat-card.total::before { background: var(--md-primary); }
+.stat-card.new-s::before { background: #F57C00; }
+.stat-card.inprog::before { background: #0288D1; }
+.stat-card.done-s::before { background: #388E3C; }
+.stat-card.reject::before { background: #D32F2F; }
 
-        /* FAB */
-        .fab {
-            position: fixed; bottom: 24px; right: 24px;
-            width: 56px; height: 56px; background: #4a90e2;
-            color: white; border: none; border-radius: 50%;
-            font-size: 28px; cursor: pointer;
-            box-shadow: 0 4px 16px rgba(74,144,226,0.4);
-            z-index: 50;
-        }
+.stat-num {
+  font-size: 24px; font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+  line-height: 1;
+}
+@media (min-width: 768px) { .stat-num { font-size: 32px; } }
+.stat-label {
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--md-on-surface-medium);
+}
+@media (min-width: 768px) { .stat-label { font-size: 11px; } }
+.stat-card.total .stat-num { color: var(--md-primary); }
+.stat-card.new-s .stat-num { color: #F57C00; }
+.stat-card.inprog .stat-num { color: #0288D1; }
+.stat-card.done-s .stat-num { color: #388E3C; }
+.stat-card.reject .stat-num { color: #D32F2F; }
 
-        /* Модалка */
-        .modal-overlay {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 100;
-            align-items: center; justify-content: center;
-        }
-        .modal-overlay.open { display: flex; }
-        .modal {
-            background: white; border-radius: 16px;
-            padding: 24px; width: 90%; max-width: 440px;
-        }
-        .modal h2 { margin-bottom: 16px; font-size: 18px; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 13px; color: #444; margin-bottom: 4px; font-weight: bold; }
-        .form-group input, .form-group textarea, .form-group select {
-            width: 100%; padding: 10px 12px;
-            border: 2px solid #eee; border-radius: 8px;
-            font-size: 15px; outline: none;
-        }
-        .form-group textarea { height: 80px; resize: none; }
-        .btn-row { display: flex; gap: 10px; margin-top: 8px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: bold; }
-        .btn-primary { background: #4a90e2; color: white; }
-        .btn-cancel { background: #eee; color: #444; }
+/* ── FILTER CARD ── */
+.filter-card {
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--md-elevation-1);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+@media (min-width: 768px) { .filter-card { margin-bottom: 16px; } }
 
-        /* Чат */
-        .chat-wrap { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        #chat-messages { height: 420px; overflow-y: auto; margin-bottom: 12px; }
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input {
-            flex: 1; padding: 10px; border: 2px solid #eee;
-            border-radius: 8px; font-size: 15px; outline: none;
-        }
-        .send-btn {
-            padding: 10px 16px; background: #4a90e2; color: white;
-            border: none; border-radius: 8px; cursor: pointer; font-size: 18px;
-        }
+.filter-header {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--md-divider);
+}
+.filter-header .material-icons { color: var(--md-on-surface-medium); font-size: 20px; }
+.filter-header span { font-size: 14px; font-weight: 500; flex: 1; }
+.filter-toggle { transition: transform 0.3s; color: var(--md-on-surface-medium); }
+.filter-toggle.open { transform: rotate(180deg); }
 
-        /* Админ */
-        .admin-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 14px; }
-        .admin-card h2 { margin-bottom: 16px; font-size: 16px; }
-        .users-table { width: 100%; border-collapse: collapse; }
-        .users-table th { background: #f0f2f5; padding: 10px 12px; text-align: left; font-size: 13px; }
-        .users-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
-        .role-select { padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
-        .btn-sm { padding: 5px 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .btn-danger { background: #f8d7da; color: #721c24; }
-        .btn-success { background: #d4edda; color: #155724; }
-    </style>
+.filter-body {
+  display: none;
+  padding: 12px 16px 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.filter-body.open { display: grid; }
+@media (min-width: 600px) { .filter-body { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 900px) { .filter-body { grid-template-columns: repeat(4, 1fr); } }
+
+.md-field {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.md-field label {
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--md-on-surface-medium);
+}
+.md-field select,
+.md-field input {
+  padding: 8px 10px;
+  border: 1px solid var(--md-divider);
+  border-radius: var(--radius);
+  font-size: 14px; font-family: 'Roboto', sans-serif;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+.md-field select:focus,
+.md-field input:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.15);
+}
+
+.filter-actions {
+  grid-column: 1 / -1;
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding-top: 4px;
+}
+
+/* Search bar always visible */
+.search-bar {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--md-divider);
+  display: flex; align-items: center; gap: 8px;
+}
+.search-bar .material-icons { color: var(--md-on-surface-medium); font-size: 20px; }
+.search-bar input {
+  flex: 1; border: none; outline: none;
+  font-size: 15px; font-family: 'Roboto', sans-serif;
+  background: transparent; color: var(--md-on-surface);
+}
+.search-bar input::placeholder { color: var(--md-on-surface-disabled); }
+
+/* ── TICKETS CARD ── */
+.tickets-card {
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--md-elevation-1);
+  overflow: hidden;
+}
+
+.table-header {
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--md-divider);
+}
+.table-header h2 { font-size: 16px; font-weight: 500; }
+.count-chip {
+  background: var(--md-primary); color: white;
+  border-radius: 12px; padding: 2px 10px;
+  font-size: 12px; font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Mobile: list cards */
+.ticket-list { display: flex; flex-direction: column; }
+
+.ticket-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--md-divider);
+  cursor: pointer;
+  display: flex; align-items: flex-start; gap: 12px;
+  transition: background 0.15s;
+  position: relative;
+}
+.ticket-item:last-child { border-bottom: none; }
+.ticket-item:hover { background: #F5F7FA; }
+.ticket-item:active { background: #E8EAF6; }
+
+.ticket-item-left {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-width: 36px;
+}
+.ticket-num {
+  font-size: 11px; font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+  color: var(--md-on-surface-medium);
+}
+.type-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.ticket-item-body { flex: 1; min-width: 0; }
+.ticket-item-title {
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ticket-item-meta {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.ticket-item-date { font-size: 11px; color: var(--md-on-surface-medium); }
+
+.ticket-item-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Desktop: table */
+.data-table {
+  display: none;
+  width: 100%;
+  border-collapse: collapse;
+}
+@media (min-width: 768px) {
+  .ticket-list { display: none; }
+  .data-table { display: table; }
+}
+
+.data-table thead { background: #F5F7FA; }
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--md-on-surface-medium);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--md-divider);
+}
+.data-table th:hover { color: var(--md-primary); }
+.data-table th .sort-arrow {
+  font-size: 14px; margin-left: 2px;
+  opacity: 0.3; vertical-align: middle;
+}
+.data-table th.sorted .sort-arrow { opacity: 1; color: var(--md-primary); }
+
+.data-table td {
+  padding: 13px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--md-divider);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.data-table tbody tr:hover { background: #F5F7FA; }
+
+.ticket-id {
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 500; font-size: 13px;
+  color: var(--md-primary);
+}
+
+/* ── STATUS CHIPS ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  border-radius: 16px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.chip-new { background: #FFF3E0; color: #E65100; }
+.chip-in_progress { background: #E3F2FD; color: #1565C0; }
+.chip-done { background: #E8F5E9; color: #2E7D32; }
+.chip-rejected { background: #FFEBEE; color: #C62828; }
+.chip-postponed { background: #F3E5F5; color: #6A1B9A; }
+
+.chip-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Priority */
+.priority-normal { color: var(--md-on-surface-medium); font-size: 13px; }
+.priority-high { color: #F57C00; font-weight: 500; font-size: 13px; }
+.priority-critical { color: #D32F2F; font-weight: 700; font-size: 13px; }
+
+/* Type icon backgrounds */
+.type-water { background: #E3F2FD; }
+.type-sewer { background: #E8EAF6; }
+.type-gas { background: #FFF8E1; }
+.type-elec { background: #FFF3E0; }
+.type-roof { background: #F1F8E9; }
+.type-other { background: #F3E5F5; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--md-on-surface-medium);
+}
+.empty-state .material-icons { font-size: 48px; opacity: 0.3; margin-bottom: 12px; display: block; }
+.empty-state p { font-size: 15px; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 72px; right: 16px;
+  width: 56px; height: 56px;
+  background: var(--md-secondary);
+  color: white; border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  box-shadow: var(--md-elevation-4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 90;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,0.25); }
+.fab:active { transform: translateY(0); }
+.fab .material-icons { font-size: 28px; }
+@media (min-width: 768px) {
+  .fab { bottom: 24px; right: 24px; border-radius: 16px; }
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+@media (min-width: 600px) {
+  .modal-overlay { align-items: center; }
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--md-surface);
+  width: 100%; max-width: 520px;
+  border-radius: 28px 28px 0 0;
+  padding: 8px 0 24px;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+@media (min-width: 600px) {
+  .modal { border-radius: 28px; padding: 8px 0 24px; }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--md-divider);
+  border-radius: 2px;
+  margin: 12px auto 16px;
+}
+@media (min-width: 600px) { .modal-handle { display: none; } }
+.modal-title {
+  font-size: 20px; font-weight: 500;
+  padding: 0 24px 16px;
+  border-bottom: 1px solid var(--md-divider);
+  margin-bottom: 16px;
+}
+.modal-body { padding: 0 24px; }
+.form-field { margin-bottom: 16px; }
+.form-field label {
+  display: block;
+  font-size: 12px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--md-on-surface-medium);
+  margin-bottom: 6px;
+}
+.form-field select,
+.form-field input,
+.form-field textarea {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--md-divider);
+  border-radius: var(--radius);
+  font-size: 15px; font-family: 'Roboto', sans-serif;
+  background: var(--md-surface); color: var(--md-on-surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-field select:focus,
+.form-field input:focus,
+.form-field textarea:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px rgba(21,101,192,0.15);
+}
+.form-field textarea { height: 80px; resize: none; }
+
+.add-row { display: flex; gap: 8px; }
+.add-row select { flex: 1; }
+.add-row-btn {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: 1px solid var(--md-divider);
+  border-radius: var(--radius);
+  background: var(--md-surface); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--md-primary); align-self: flex-end;
+  transition: background 0.2s;
+}
+.add-row-btn:hover { background: #E3F2FD; }
+.add-row-btn .material-icons { font-size: 20px; }
+
+.inline-add {
+  display: none; margin-top: 8px;
+  background: #F5F7FA; border-radius: var(--radius);
+  padding: 10px; gap: 8px; flex-direction: column;
+}
+.inline-add.open { display: flex; }
+.inline-add input { font-size: 14px; padding: 8px 10px; }
+
+.modal-footer {
+  display: flex; gap: 10px;
+  padding: 20px 24px 0;
+}
+.md-btn {
+  flex: 1; padding: 12px;
+  border: none; border-radius: var(--radius);
+  font-size: 15px; font-weight: 500; font-family: 'Roboto', sans-serif;
+  cursor: pointer; letter-spacing: 0.3px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.md-btn-primary {
+  background: var(--md-primary); color: white;
+}
+.md-btn-primary:hover { background: var(--md-primary-dark); box-shadow: var(--md-elevation-1); }
+.md-btn-text {
+  background: transparent; color: var(--md-primary);
+}
+.md-btn-text:hover { background: #E3F2FD; }
+.md-btn-sm {
+  padding: 7px 14px; font-size: 13px;
+  border: none; border-radius: var(--radius);
+  cursor: pointer; font-family: 'Roboto', sans-serif; font-weight: 500;
+  background: var(--md-primary); color: white;
+}
+
+/* ── CHAT TAB ── */
+.chat-wrap {
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--md-elevation-1);
+  display: flex; flex-direction: column;
+  height: calc(100vh - 180px);
+  min-height: 300px;
+}
+#chat-messages { flex: 1; overflow-y: auto; padding: 16px; }
+.chat-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--md-divider);
+  display: flex; gap: 8px; align-items: center;
+}
+.chat-footer input {
+  flex: 1; padding: 10px 14px;
+  border: 1px solid var(--md-divider);
+  border-radius: 24px;
+  font-size: 15px; font-family: 'Roboto', sans-serif;
+  outline: none; background: var(--md-background);
+}
+.chat-footer input:focus { border-color: var(--md-primary); }
+.send-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%; background: var(--md-primary);
+  color: white; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.send-btn .material-icons { font-size: 20px; }
+
+/* ── ADMIN TAB ── */
+.admin-section {
+  background: var(--md-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--md-elevation-1);
+  margin-bottom: 14px; overflow: hidden;
+}
+.admin-section-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--md-divider);
+  font-size: 16px; font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+}
+.admin-section-header .material-icons { color: var(--md-primary); font-size: 20px; }
+.admin-section-body { padding: 16px 20px; }
+.users-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.users-table th {
+  text-align: left; padding: 8px 10px;
+  background: #F5F7FA; font-size: 11px;
+  font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--md-on-surface-medium);
+}
+.users-table td { padding: 10px; border-bottom: 1px solid var(--md-divider); }
+.users-table tr:last-child td { border-bottom: none; }
+.role-select {
+  padding: 5px 8px; border: 1px solid var(--md-divider);
+  border-radius: var(--radius); font-size: 13px;
+  font-family: 'Roboto', sans-serif; outline: none;
+}
+.btn-sm {
+  padding: 5px 10px; border: none; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+}
+.btn-success { background: #E8F5E9; color: #2E7D32; }
+.btn-danger { background: #FFEBEE; color: #C62828; }
+
+/* Snackbar */
+.snackbar {
+  position: fixed; bottom: 72px; left: 16px; right: 16px;
+  max-width: 480px; margin: 0 auto;
+  background: #323232; color: white;
+  padding: 12px 16px; border-radius: var(--radius-lg);
+  font-size: 14px; font-weight: 500;
+  z-index: 300; display: none;
+  animation: fadeIn 0.3s;
+  box-shadow: var(--md-elevation-4);
+}
+@media (min-width: 768px) { .snackbar { bottom: 24px; left: 50%; transform: translateX(-50%); width: fit-content; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 </head>
 <body>
 
-<div class="header">
-    <h1>������ Диспетчер</h1>
-    <div class="header-right">
-        <span class="user-info" id="user-name"></span>
-        <button class="logout-btn" onclick="logout()">Выйти</button>
+<!-- APP BAR -->
+<div class="app-bar">
+  <span class="app-bar-title">Диспетчер</span>
+  <div class="app-bar-actions">
+    <div class="user-chip">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span id="user-name" style="display:none"></span>
     </div>
+    <button class="icon-btn" id="admin-btn" style="display:none" onclick="goToAdmin()" title="Администратор">
+      <span class="material-icons">settings</span>
+    </button>
+    <button class="icon-btn" onclick="logout()" title="Выйти">
+      <span class="material-icons">logout</span>
+    </button>
+  </div>
 </div>
 
-<div class="nav">
-    <button class="nav-btn active" onclick="showTab('tickets', this)">������ Заявки</button>
-    <button class="nav-btn" onclick="showTab('chat', this)">������ Чат</button>
-    <button class="nav-btn" id="admin-tab" style="display:none" onclick="showTab('admin', this)">⚙️ Админ</button>
-</div>
+<!-- TOP NAV (desktop) -->
+<nav class="top-nav">
+  <button class="top-nav-item active" id="top-tickets" onclick="showTab('tickets', this)">
+    <span class="material-icons">assignment</span> Заявки
+  </button>
+  <button class="top-nav-item" id="top-chat" onclick="showTab('chat', this)">
+    <span class="material-icons">chat</span> Чат
+  </button>
+  <button class="top-nav-item" id="top-admin" style="display:none" onclick="showTab('admin', this)">
+    <span class="material-icons">manage_accounts</span> Пользователи
+  </button>
+</nav>
 
+<!-- CONTENT -->
 <div class="content">
 
-    <!-- ЗАЯВКИ -->
-    <div id="tab-tickets">
-        <div class="stats-row" id="stats-row"></div>
-
-        <div class="filters">
-            <div class="filter-group">
-                <label>Статус</label>
-                <select id="filter-status" onchange="applyFilters()">
-                    <option value="">Все статусы</option>
-                    <option value="new">Новая</option>
-                    <option value="in_progress">В работе</option>
-                    <option value="done">Выполнено</option>
-                    <option value="rejected">Отказано</option>
-                    <option value="postponed">Перенос</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Приоритет</label>
-                <select id="filter-priority" onchange="applyFilters()">
-                    <option value="">Все</option>
-                    <option value="normal">Обычный</option>
-                    <option value="high">Высокий</option>
-                    <option value="critical">Критический</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Исполнитель</label>
-                <select id="filter-assignee" onchange="applyFilters()">
-                    <option value="">Все</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Дата от</label>
-                <input type="date" id="filter-date-from" onchange="applyFilters()" />
-            </div>
-            <div class="filter-group">
-                <label>Дата до</label>
-                <input type="date" id="filter-date-to" onchange="applyFilters()" />
-            </div>
-            <div class="filter-group">
-                <label>Поиск</label>
-                <input type="text" id="filter-search" placeholder="Поиск по заявкам..." oninput="applyFilters()" />
-            </div>
-            <button class="btn-reset" onclick="resetFilters()">✕ Сбросить</button>
-        </div>
-
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th onclick="sortBy('id')">#<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('title')">Заголовок<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('status')">Статус<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('priority')">Приоритет<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('assignee')">Исполнитель<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('created_at')">Создана<span class="sort-icon">↕</span></th>
-                        <th onclick="sortBy('deadline')">Срок<span class="sort-icon">↕</span></th>
-                    </tr>
-                </thead>
-                <tbody id="tickets-tbody">
-                    <tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa;">Загрузка...</td></tr>
-                </tbody>
-            </table>
-        </div>
+  <!-- ─── TICKETS TAB ─── -->
+  <div id="tab-tickets">
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-row">
+      <div class="stat-card total"><div class="stat-num" id="st-all">—</div><div class="stat-label">Всего</div></div>
+      <div class="stat-card new-s"><div class="stat-num" id="st-new">—</div><div class="stat-label">Новых</div></div>
+      <div class="stat-card inprog"><div class="stat-num" id="st-prog">—</div><div class="stat-label">В работе</div></div>
+      <div class="stat-card done-s"><div class="stat-num" id="st-done">—</div><div class="stat-label">Выполнено</div></div>
+      <div class="stat-card reject"><div class="stat-num" id="st-rej">—</div><div class="stat-label">Отказано</div></div>
     </div>
 
-    <!-- ЧАТ -->
-    <div id="tab-chat" style="display:none">
-        <div class="chat-wrap">
-            <div id="chat-messages"></div>
-            <div class="chat-input-row">
-                <input type="text" id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter')sendMessage()" />
-                <button class="send-btn" onclick="sendMessage()">➤</button>
-            </div>
+    <!-- Filter card -->
+    <div class="filter-card">
+      <div class="search-bar">
+        <span class="material-icons">search</span>
+        <input type="text" id="filter-search" placeholder="Поиск по заявкам..." oninput="applyFilters()" />
+      </div>
+      <div class="filter-header" onclick="toggleFilters()">
+        <span class="material-icons">tune</span>
+        <span>Фильтры</span>
+        <span class="material-icons filter-toggle" id="filter-toggle-icon">expand_more</span>
+      </div>
+      <div class="filter-body" id="filter-body">
+        <div class="md-field">
+          <label>Статус</label>
+          <select id="filter-status" onchange="applyFilters()">
+            <option value="">Все</option>
+            <option value="new">Новая</option>
+            <option value="in_progress">В работе</option>
+            <option value="done">Выполнено</option>
+            <option value="rejected">Отказано</option>
+            <option value="postponed">Перенос</option>
+          </select>
         </div>
+        <div class="md-field">
+          <label>Тип</label>
+          <select id="filter-type" onchange="applyFilters()">
+            <option value="">Все</option>
+            <option value="Водоснабжение">Водоснабжение</option>
+            <option value="Канализация">Канализация</option>
+            <option value="Вентиляция">Вентиляция</option>
+            <option value="Газоснабжение">Газоснабжение</option>
+            <option value="Электроснабжение">Электроснабжение</option>
+            <option value="Благоустройство">Благоустройство</option>
+            <option value="Кровля">Кровля</option>
+            <option value="Прочие">Прочие</option>
+          </select>
+        </div>
+        <div class="md-field">
+          <label>Исполнитель</label>
+          <select id="filter-assignee" onchange="applyFilters()">
+            <option value="">Все</option>
+          </select>
+        </div>
+        <div class="md-field">
+          <label>Дата от</label>
+          <input type="date" id="filter-date-from" onchange="applyFilters()" />
+        </div>
+        <div class="md-field">
+          <label>Дата до</label>
+          <input type="date" id="filter-date-to" onchange="applyFilters()" />
+        </div>
+        <div class="filter-actions">
+          <button class="md-btn md-btn-text" style="flex:0;padding:8px 16px;font-size:13px" onclick="resetFilters()">Сбросить</button>
+        </div>
+      </div>
     </div>
 
-    <!-- АДМИН -->
-    <div id="tab-admin" style="display:none">
-        <div class="admin-card">
-            <h2>������ Пользователи</h2>
-            <table class="users-table" id="users-table">
-                <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th>Новый пароль</th><th>Действия</th></tr></thead>
-                <tbody id="users-tbody"></tbody>
-            </table>
-        </div>
-        <div class="admin-card">
-            <h2>➕ Новый пользователь</h2>
-            <div class="form-group"><label>Логин</label><input type="text" id="new-username" /></div>
-            <div class="form-group"><label>Пароль</label><input type="password" id="new-password" /></div>
-            <div class="form-group"><label>Полное имя</label><input type="text" id="new-fullname" /></div>
-            <div class="form-group">
-                <label>Роль</label>
-                <select id="new-role">
-                    <option value="executor">Исполнитель</option>
-                    <option value="dispatcher">Диспетчер</option>
-                    <option value="admin">Администратор</option>
-                </select>
-            </div>
-            <button class="btn btn-primary" style="max-width:200px" onclick="createUser()">Создать</button>
-        </div>
+    <!-- Tickets -->
+    <div class="tickets-card">
+      <div class="table-header">
+        <h2>Заявки</h2>
+        <span class="count-chip" id="count-chip">0</span>
+      </div>
+
+      <!-- Mobile list -->
+      <div class="ticket-list" id="ticket-list"></div>
+
+      <!-- Desktop table -->
+      <table class="data-table" id="data-table">
+        <thead>
+          <tr>
+            <th onclick="sortBy('id')" id="th-id">#<span class="sort-arrow material-icons">unfold_more</span></th>
+            <th onclick="sortBy('title')" id="th-title">Адрес<span class="sort-arrow material-icons">unfold_more</span></th>
+            <th onclick="sortBy('type')" id="th-type">Тип<span class="sort-arrow material-icons">unfold_more</span></th>
+            <th onclick="sortBy('created_at')" id="th-created">Создана<span class="sort-arrow material-icons">unfold_more</span></th>
+            <th onclick="sortBy('status')" id="th-status">Статус<span class="sort-arrow material-icons">unfold_more</span></th>
+            <th onclick="sortBy('priority')" id="th-priority">Приоритет<span class="sort-arrow material-icons">unfold_more</span></th>
+          </tr>
+        </thead>
+        <tbody id="tickets-tbody"></tbody>
+      </table>
     </div>
+  </div>
 
-</div>
+  <!-- ─── CHAT TAB ─── -->
+  <div id="tab-chat" style="display:none">
+    <div class="chat-wrap">
+      <div id="chat-messages"></div>
+      <div class="chat-footer">
+        <input type="text" id="chat-input" placeholder="Написать сообщение..." onkeypress="if(event.key==='Enter')sendMessage()" />
+        <button class="send-btn" onclick="sendMessage()"><span class="material-icons">send</span></button>
+      </div>
+    </div>
+  </div>
 
-<button class="fab" id="fab-btn" onclick="openModal()">+</button>
-
-<!-- Модалка новой заявки -->
-<div class="modal-overlay" id="modal">
-    <div class="modal">
-        <h2>������ Новая заявка</h2>
-        <div class="form-group"><label>Заголовок</label><input type="text" id="ticket-title" placeholder="Кратко об аварии" /></div>
-        <div class="form-group"><label>Описание</label><textarea id="ticket-desc" placeholder="Подробное описание..."></textarea></div>
-        <div class="form-group">
-            <label>Приоритет</label>
-            <select id="ticket-priority">
-                <option value="normal">Обычный</option>
-                <option value="high">Высокий</option>
-                <option value="critical">Критический</option>
+  <!-- ─── ADMIN TAB ─── -->
+  <div id="tab-admin" style="display:none">
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <span class="material-icons">group</span> Пользователи
+      </div>
+      <div class="admin-section-body" style="padding:0">
+        <div style="overflow-x:auto">
+          <table class="users-table" id="users-table">
+            <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th>Новый пароль</th><th>Действия</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="admin-section">
+      <div class="admin-section-header">
+        <span class="material-icons">person_add</span> Новый пользователь
+      </div>
+      <div class="admin-section-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-field"><label>Логин</label><input type="text" id="new-username"/></div>
+          <div class="form-field"><label>Пароль</label><input type="password" id="new-password"/></div>
+          <div class="form-field" style="grid-column:1/-1"><label>Полное имя</label><input type="text" id="new-fullname"/></div>
+          <div class="form-field">
+            <label>Роль</label>
+            <select id="new-role">
+              <option value="executor">Исполнитель</option>
+              <option value="dispatcher">Диспетчер</option>
+              <option value="admin">Администратор</option>
             </select>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="md-btn md-btn-primary" style="flex:1" onclick="createUser()">Создать</button>
+          </div>
         </div>
-        <div class="btn-row">
-            <button class="btn btn-cancel" onclick="closeModal()">Отмена</button>
-            <button class="btn btn-primary" onclick="createTicket()">Создать</button>
-        </div>
+      </div>
     </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-item active" id="bn-tickets" onclick="showTab('tickets', this)">
+    <div class="bottom-nav-indicator"></div>
+    <span class="material-icons">assignment</span>
+    <span>Заявки</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-chat" onclick="showTab('chat', this)">
+    <div class="bottom-nav-indicator"></div>
+    <span class="material-icons">chat</span>
+    <span>Чат</span>
+  </button>
+  <button class="bottom-nav-item" id="bn-admin" style="display:none" onclick="showTab('admin', this)">
+    <div class="bottom-nav-indicator"></div>
+    <span class="material-icons">manage_accounts</span>
+    <span>Юзеры</span>
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" id="fab-btn" onclick="openModal()">
+  <span class="material-icons">add</span>
+</button>
+
+<!-- MODAL: New ticket -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Новая заявка</div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label>Населённый пункт</label>
+        <select id="ticket-settlement" onchange="loadStreets()">
+          <option value="">Выберите...</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Улица</label>
+        <div class="add-row">
+          <select id="ticket-street" onchange="loadHouses()"></select>
+          <button class="add-row-btn" onclick="toggleNewStreet()"><span class="material-icons">add</span></button>
+        </div>
+        <div class="inline-add" id="new-street-form">
+          <input type="text" id="new-street-name" placeholder="Название улицы" />
+          <button class="md-btn-sm" onclick="addNewStreet()">Добавить</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Дом</label>
+        <div class="add-row">
+          <select id="ticket-house"></select>
+          <button class="add-row-btn" onclick="toggleNewHouse()"><span class="material-icons">add</span></button>
+        </div>
+        <div class="inline-add" id="new-house-form">
+          <input type="text" id="new-house-number" placeholder="Номер дома" />
+          <button class="md-btn-sm" onclick="addNewHouse()">Добавить</button>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Квартира / Помещение</label>
+        <input type="text" id="ticket-apartment" placeholder="Необязательно" />
+      </div>
+      <div class="form-field">
+        <label>Тип</label>
+        <select id="ticket-type">
+          <option value="Водоснабжение">Водоснабжение</option>
+          <option value="Канализация">Канализация</option>
+          <option value="Вентиляция">Вентиляция</option>
+          <option value="Газоснабжение">Газоснабжение</option>
+          <option value="Электроснабжение">Электроснабжение</option>
+          <option value="Благоустройство">Благоустройство</option>
+          <option value="Кровля">Кровля</option>
+          <option value="Прочие">Прочие</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Описание</label>
+        <textarea id="ticket-desc" placeholder="Подробное описание проблемы..."></textarea>
+      </div>
+      <div class="form-field">
+        <label>Приоритет</label>
+        <select id="ticket-priority">
+          <option value="normal">Обычный</option>
+          <option value="high">Высокий</option>
+          <option value="critical">Критический</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="md-btn md-btn-text" onclick="closeModal()">Отмена</button>
+      <button class="md-btn md-btn-primary" onclick="createTicket()">Создать</button>
+    </div>
+  </div>
 </div>
+
+<!-- Snackbar -->
+<div class="snackbar" id="snackbar"></div>
 
 <script>
 let currentUser = null;
@@ -322,279 +952,435 @@ let allUsers = [];
 let sortField = 'id';
 let sortDir = -1;
 let chatWs = null;
+let activeTab = 'tickets';
 
 const statusLabels = { new:'Новая', in_progress:'В работе', done:'Выполнено', rejected:'Отказано', postponed:'Перенос' };
 const priorityLabels = { normal:'Обычный', high:'Высокий', critical:'Критический' };
-const priorityOrder = { critical: 3, high: 2, normal: 1 };
+const priorityOrder = { critical:3, high:2, normal:1 };
+const typeIcons = {
+  'Водоснабжение': {icon:'water_drop', cls:'type-water'},
+  'Канализация': {icon:'plumbing', cls:'type-sewer'},
+  'Газоснабжение': {icon:'local_fire_department', cls:'type-gas'},
+  'Электроснабжение': {icon:'bolt', cls:'type-elec'},
+  'Кровля': {icon:'roofing', cls:'type-roof'},
+  'Вентиляция': {icon:'air', cls:'type-other'},
+  'Благоустройство': {icon:'park', cls:'type-other'},
+  'Прочие': {icon:'build', cls:'type-other'},
+};
+
+function getTypeInfo(t) { return typeIcons[t] || {icon:'build', cls:'type-other'}; }
+
+function showSnack(msg, dur=3000) {
+  const s = document.getElementById('snackbar');
+  s.textContent = msg; s.style.display = 'block';
+  setTimeout(() => s.style.display = 'none', dur);
+}
 
 async function init() {
-    const userData = localStorage.getItem('user');
-    if (!userData) { window.location.href = '/'; return; }
-    currentUser = JSON.parse(userData);
-    document.getElementById('user-name').textContent = currentUser.full_name;
-    if (currentUser.role === 'admin') {
-        document.getElementById('admin-tab').style.display = 'block';
-    }
-    await loadUsers();
-    await loadTickets();
-    connectChat();
+  const userData = localStorage.getItem('user');
+  if (!userData) { window.location.href = '/'; return; }
+  currentUser = JSON.parse(userData);
+  const initials = currentUser.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent = currentUser.full_name;
+  if (currentUser.role === 'admin') {
+    document.getElementById('admin-btn').style.display = 'flex';
+    document.getElementById('top-admin').style.display = 'flex';
+    document.getElementById('bn-admin').style.display = 'flex';
+  }
+  await loadUsers();
+  await loadAddresses();
+  await loadTickets();
+  connectChat();
 }
 
-async function loadUsers() {
-    const res = await fetch('/auth/users', { credentials: 'include' });
-    allUsers = await res.json();
-    const sel = document.getElementById('filter-assignee');
-    allUsers.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = u.full_name;
-        sel.appendChild(opt);
-    });
-}
-
-function getUserName(id) {
-    if (!id) return '—';
-    const u = allUsers.find(u => u.id === id);
-    return u ? u.full_name : '—';
-}
-
-async function loadTickets() {
-    const res = await fetch('/tickets/', { credentials: 'include' });
-    if (res.status === 401) { window.location.href = '/'; return; }
-    allTickets = await res.json();
-    renderStats();
-    applyFilters();
-}
-
-function renderStats() {
-    const counts = { new:0, in_progress:0, done:0, rejected:0, postponed:0 };
-    allTickets.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
-    document.getElementById('stats-row').innerHTML = `
-        <div class="stat-card"><div class="stat-num">${allTickets.length}</div><div class="stat-label">Всего</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#856404">${counts.new}</div><div class="stat-label">Новых</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#004085">${counts.in_progress}</div><div class="stat-label">В работе</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#155724">${counts.done}</div><div class="stat-label">Выполнено</div></div>
-        <div class="stat-card"><div class="stat-num" style="color:#721c24">${counts.rejected}</div><div class="stat-label">Отказано</div></div>
-    `;
-}
-
-function applyFilters() {
-    const status = document.getElementById('filter-status').value;
-    const priority = document.getElementById('filter-priority').value;
-    const assignee = document.getElementById('filter-assignee').value;
-    const dateFrom = document.getElementById('filter-date-from').value;
-    const dateTo = document.getElementById('filter-date-to').value;
-    const search = document.getElementById('filter-search').value.toLowerCase();
-
-    let filtered = allTickets.filter(t => {
-        if (status && t.status !== status) return false;
-        if (priority && t.priority !== priority) return false;
-        if (assignee && String(t.assigned_to) !== assignee) return false;
-        if (dateFrom && new Date(t.created_at) < new Date(dateFrom)) return false;
-        if (dateTo && new Date(t.created_at) > new Date(dateTo + 'T23:59:59')) return false;
-        if (search && !t.title.toLowerCase().includes(search) && !t.description.toLowerCase().includes(search)) return false;
-        return true;
-    });
-
-    filtered = sortTickets(filtered);
-    renderTable(filtered);
-}
-
-function sortTickets(tickets) {
-    return [...tickets].sort((a, b) => {
-        let va, vb;
-        if (sortField === 'assignee') { va = getUserName(a.assigned_to); vb = getUserName(b.assigned_to); }
-        else if (sortField === 'priority') { va = priorityOrder[a.priority] || 0; vb = priorityOrder[b.priority] || 0; }
-        else { va = a[sortField]; vb = b[sortField]; }
-        if (va === null || va === undefined) va = '';
-        if (vb === null || vb === undefined) vb = '';
-        if (va < vb) return -1 * sortDir;
-        if (va > vb) return 1 * sortDir;
-        return 0;
-    });
-}
-
-function sortBy(field) {
-    if (sortField === field) sortDir *= -1;
-    else { sortField = field; sortDir = -1; }
-    document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
-    event.target.closest('th').classList.add('sorted');
-    applyFilters();
-}
-
-function renderTable(tickets) {
-    const tbody = document.getElementById('tickets-tbody');
-    if (!tickets.length) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Заявок не найдено</td></tr>';
-        return;
-    }
-    tbody.innerHTML = tickets.map(t => `
-        <tr onclick="window.location.href='/static/ticket.html?id=${t.id}'">
-            <td><strong>#${t.id}</strong></td>
-            <td>${t.title}</td>
-            <td><span class="status-badge status-${t.status}">${statusLabels[t.status] || t.status}</span></td>
-            <td><span class="priority-badge priority-${t.priority}">${priorityLabels[t.priority] || t.priority}</span></td>
-            <td>${getUserName(t.assigned_to)}</td>
-            <td>${new Date(t.created_at).toLocaleString('ru')}</td>
-            <td>${t.deadline ? new Date(t.deadline).toLocaleString('ru') : '—'}</td>
-        </tr>
-    `).join('');
-}
-
-function resetFilters() {
-    document.getElementById('filter-status').value = '';
-    document.getElementById('filter-priority').value = '';
-    document.getElementById('filter-assignee').value = '';
-    document.getElementById('filter-date-from').value = '';
-    document.getElementById('filter-date-to').value = '';
-    document.getElementById('filter-search').value = '';
-    applyFilters();
+function toggleFilters() {
+  const body = document.getElementById('filter-body');
+  const icon = document.getElementById('filter-toggle-icon');
+  body.classList.toggle('open');
+  icon.classList.toggle('open');
 }
 
 function showTab(tab, btn) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    ['tickets','chat','admin'].forEach(t => {
-        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
-    });
-    document.getElementById('fab-btn').style.display = tab === 'tickets' ? 'block' : 'none';
-    if (tab === 'admin') loadAdminUsers();
-    if (tab === 'tickets') loadTickets();
+  activeTab = tab;
+  ['tickets','chat','admin'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.top-nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+  const topBtn = document.getElementById('top-' + tab);
+  const bnBtn = document.getElementById('bn-' + tab);
+  if (topBtn) topBtn.classList.add('active');
+  if (bnBtn) bnBtn.classList.add('active');
+  document.getElementById('fab-btn').style.display = tab === 'tickets' ? 'flex' : 'none';
+  if (tab === 'admin') loadAdminUsers();
+  if (tab === 'tickets') loadTickets();
+}
+
+async function loadUsers() {
+  const res = await fetch('/auth/users', { credentials: 'include' });
+  allUsers = await res.json();
+  const sel = document.getElementById('filter-assignee');
+  allUsers.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.id; opt.textContent = u.full_name;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadAddresses() {
+  const res = await fetch('/tickets/settlements', { credentials: 'include' });
+  const settlements = await res.json();
+  const sel = document.getElementById('ticket-settlement');
+  sel.innerHTML = '<option value="">Выберите населённый пункт...</option>';
+  settlements.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.name; sel.appendChild(opt);
+  });
+}
+
+async function loadStreets() {
+  const id = document.getElementById('ticket-settlement').value;
+  const streetSel = document.getElementById('ticket-street');
+  const houseSel = document.getElementById('ticket-house');
+  streetSel.innerHTML = '<option value="">Выберите улицу...</option>';
+  houseSel.innerHTML = '<option value="">Выберите дом...</option>';
+  if (!id) return;
+  const res = await fetch(`/tickets/streets/${id}`, { credentials: 'include' });
+  const streets = await res.json();
+  streets.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id; opt.textContent = s.name; streetSel.appendChild(opt);
+  });
+}
+
+async function loadHouses() {
+  const id = document.getElementById('ticket-street').value;
+  const houseSel = document.getElementById('ticket-house');
+  houseSel.innerHTML = '<option value="">Выберите дом...</option>';
+  if (!id) return;
+  const res = await fetch(`/tickets/houses/${id}`, { credentials: 'include' });
+  const houses = await res.json();
+  houses.forEach(h => {
+    const opt = document.createElement('option');
+    opt.value = h.id; opt.textContent = h.number; houseSel.appendChild(opt);
+  });
+}
+
+function toggleNewStreet() {
+  document.getElementById('new-street-form').classList.toggle('open');
+}
+function toggleNewHouse() {
+  document.getElementById('new-house-form').classList.toggle('open');
+}
+
+async function addNewStreet() {
+  const settlementId = document.getElementById('ticket-settlement').value;
+  const name = document.getElementById('new-street-name').value.trim();
+  if (!settlementId || !name) { showSnack('Выберите пункт и введите улицу'); return; }
+  const res = await fetch('/tickets/add-street', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({settlement_id: parseInt(settlementId), name}),
+    credentials: 'include'
+  });
+  if (res.ok) {
+    document.getElementById('new-street-name').value = '';
+    document.getElementById('new-street-form').classList.remove('open');
+    await loadStreets();
+    showSnack('Улица добавлена');
+  }
+}
+
+async function addNewHouse() {
+  const streetId = document.getElementById('ticket-street').value;
+  const number = document.getElementById('new-house-number').value.trim();
+  if (!streetId || !number) { showSnack('Выберите улицу и введите номер'); return; }
+  const res = await fetch('/tickets/add-house', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({street_id: parseInt(streetId), number}),
+    credentials: 'include'
+  });
+  if (res.ok) {
+    document.getElementById('new-house-number').value = '';
+    document.getElementById('new-house-form').classList.remove('open');
+    await loadHouses();
+    showSnack('Дом добавлен');
+  }
+}
+
+function getUserName(id) {
+  if (!id) return '—';
+  const u = allUsers.find(u => u.id === id);
+  return u ? u.full_name : '—';
+}
+
+async function loadTickets() {
+  const res = await fetch('/tickets/', { credentials: 'include' });
+  if (res.status === 401) { window.location.href = '/'; return; }
+  allTickets = await res.json();
+  renderStats();
+  applyFilters();
+}
+
+function renderStats() {
+  const c = { new:0, in_progress:0, done:0, rejected:0, postponed:0 };
+  allTickets.forEach(t => { if (c[t.status] !== undefined) c[t.status]++; });
+  document.getElementById('st-all').textContent = allTickets.length;
+  document.getElementById('st-new').textContent = c.new;
+  document.getElementById('st-prog').textContent = c.in_progress;
+  document.getElementById('st-done').textContent = c.done;
+  document.getElementById('st-rej').textContent = c.rejected;
+}
+
+function applyFilters() {
+  const status = document.getElementById('filter-status').value;
+  const type = document.getElementById('filter-type').value;
+  const assignee = document.getElementById('filter-assignee').value;
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo = document.getElementById('filter-date-to').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+
+  let filtered = allTickets.filter(t => {
+    if (status && t.status !== status) return false;
+    if (type && t.type !== type) return false;
+    if (assignee && String(t.assigned_to) !== assignee) return false;
+    if (dateFrom && new Date(t.created_at) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(t.created_at) > new Date(dateTo + 'T23:59:59')) return false;
+    if (search && !t.title.toLowerCase().includes(search) && !t.description.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  filtered = [...filtered].sort((a,b) => {
+    let va, vb;
+    if (sortField === 'priority') { va = priorityOrder[a.priority]||0; vb = priorityOrder[b.priority]||0; }
+    else { va = a[sortField]; vb = b[sortField]; }
+    if (va === null || va === undefined) va = '';
+    if (vb === null || vb === undefined) vb = '';
+    if (va < vb) return -1 * sortDir;
+    if (va > vb) return 1 * sortDir;
+    return 0;
+  });
+
+  document.getElementById('count-chip').textContent = filtered.length;
+  renderMobileList(filtered);
+  renderDesktopTable(filtered);
+}
+
+function chipHtml(status) {
+  return `<span class="chip chip-${status}"><span class="chip-dot"></span>${statusLabels[status]||status}</span>`;
+}
+
+function renderMobileList(tickets) {
+  const list = document.getElementById('ticket-list');
+  if (!tickets.length) {
+    list.innerHTML = '<div class="empty-state"><span class="material-icons">inbox</span><p>Заявок не найдено</p></div>';
+    return;
+  }
+  list.innerHTML = tickets.map(t => {
+    const ti = getTypeInfo(t.type);
+    const date = new Date(t.created_at).toLocaleDateString('ru', {day:'2-digit',month:'2-digit'});
+    const time = new Date(t.created_at).toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+    const prioClass = `priority-${t.priority}`;
+    return `<div class="ticket-item" onclick="window.location.href='/static/ticket.html?id=${t.id}'">
+      <div class="ticket-item-left">
+        <div class="ticket-num">#${t.id}</div>
+        <div class="type-icon ${ti.cls}"><span class="material-icons" style="font-size:16px">${ti.icon}</span></div>
+      </div>
+      <div class="ticket-item-body">
+        <div class="ticket-item-title">${t.title}</div>
+        <div class="ticket-item-meta">
+          ${chipHtml(t.status)}
+          <span class="ticket-item-date">${date} ${time}</span>
+        </div>
+      </div>
+      <div class="ticket-item-right">
+        <span class="${prioClass}">${priorityLabels[t.priority]||t.priority}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDesktopTable(tickets) {
+  const tbody = document.getElementById('tickets-tbody');
+  if (!tickets.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:48px;color:var(--md-on-surface-disabled)">Заявок не найдено</td></tr>';
+    return;
+  }
+  tbody.innerHTML = tickets.map(t => {
+    const ti = getTypeInfo(t.type);
+    const date = new Date(t.created_at).toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const prioClass = `priority-${t.priority}`;
+    return `<tr onclick="window.location.href='/static/ticket.html?id=${t.id}'">
+      <td><span class="ticket-id">#${t.id}</span></td>
+      <td style="max-width:280px"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</div></td>
+      <td><span style="display:flex;align-items:center;gap:6px"><span class="material-icons" style="font-size:16px;color:var(--md-on-surface-medium)">${ti.icon}</span>${t.type||'Прочие'}</span></td>
+      <td style="color:var(--md-on-surface-medium);font-size:13px">${date}</td>
+      <td>${chipHtml(t.status)}</td>
+      <td><span class="${prioClass}">${priorityLabels[t.priority]||t.priority}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function sortBy(field) {
+  if (sortField === field) sortDir *= -1; else { sortField = field; sortDir = -1; }
+  document.querySelectorAll('.data-table th').forEach(th => th.classList.remove('sorted'));
+  const thMap = {id:'th-id',title:'th-title',type:'th-type',created_at:'th-created',status:'th-status',priority:'th-priority'};
+  if (thMap[field]) document.getElementById(thMap[field])?.classList.add('sorted');
+  applyFilters();
+}
+
+function resetFilters() {
+  ['filter-status','filter-type','filter-assignee'].forEach(id => document.getElementById(id).value = '');
+  ['filter-date-from','filter-date-to','filter-search'].forEach(id => document.getElementById(id).value = '');
+  applyFilters();
 }
 
 function openModal() { document.getElementById('modal').classList.add('open'); }
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-async function createTicket() {
-    const title = document.getElementById('ticket-title').value.trim();
-    const description = document.getElementById('ticket-desc').value.trim();
-    const priority = document.getElementById('ticket-priority').value;
-    if (!title || !description) { alert('Заполните все поля'); return; }
-    const res = await fetch('/tickets/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, description, priority }),
-        credentials: 'include'
-    });
-    if (res.ok) {
-        closeModal();
-        document.getElementById('ticket-title').value = '';
-        document.getElementById('ticket-desc').value = '';
-        await loadTickets();
-    }
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  ['ticket-settlement','ticket-street','ticket-house'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('ticket-apartment').value = '';
+  document.getElementById('ticket-type').value = 'Прочие';
+  document.getElementById('ticket-desc').value = '';
+  document.getElementById('ticket-priority').value = 'normal';
+  document.getElementById('new-street-form').classList.remove('open');
+  document.getElementById('new-house-form').classList.remove('open');
 }
 
-// ЧАТ
+async function createTicket() {
+  const settlementEl = document.getElementById('ticket-settlement');
+  const streetEl = document.getElementById('ticket-street');
+  const houseEl = document.getElementById('ticket-house');
+  const settlement = settlementEl.options[settlementEl.selectedIndex]?.text;
+  const street = streetEl.options[streetEl.selectedIndex]?.text;
+  const house = houseEl.options[houseEl.selectedIndex]?.text;
+  const apartment = document.getElementById('ticket-apartment').value.trim();
+  const type = document.getElementById('ticket-type').value;
+  const description = document.getElementById('ticket-desc').value.trim();
+  const priority = document.getElementById('ticket-priority').value;
+
+  if (!settlement || settlement.includes('...') || !street || street.includes('...') || !house || house.includes('...')) {
+    showSnack('Заполните населённый пункт, улицу и дом'); return;
+  }
+  if (!description) { showSnack('Введите описание проблемы'); return; }
+
+  const title = `${settlement}, ${street}, д.${house}${apartment ? `, кв.${apartment}` : ''}`;
+  const res = await fetch('/tickets/', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({title, description, priority, type}),
+    credentials: 'include'
+  });
+  if (res.ok) {
+    closeModal(); await loadTickets();
+    showSnack('Заявка создана');
+  }
+}
+
+// ── CHAT ──
 function connectChat() {
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    chatWs = new WebSocket(`${protocol}://${window.location.host}/ws/chat`);
-    chatWs.onmessage = e => {
-        const msg = JSON.parse(e.data);
-        addChatMessage(msg);
-    };
-    chatWs.onclose = () => setTimeout(connectChat, 3000);
-    chatWs.onerror = () => chatWs.close();
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  chatWs = new WebSocket(`${protocol}://${window.location.host}/ws/chat`);
+  chatWs.onmessage = e => { const msg = JSON.parse(e.data); addChatMessage(msg); };
+  chatWs.onclose = () => setTimeout(connectChat, 3000);
+  chatWs.onerror = () => chatWs.close();
 }
 
 function addChatMessage(msg) {
-    const div = document.getElementById('chat-messages');
-    const isMe = currentUser && msg.user_id === currentUser.id;
-    const time = msg.time
-        ? new Date(msg.time).toLocaleString('ru', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})
-        : new Date().toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
-    div.innerHTML += `
-        <div style="margin-bottom:10px;text-align:${isMe?'right':'left'};">
-            <div style="font-size:11px;color:#999;margin-bottom:2px;">${msg.full_name} · ${time}</div>
-            <div style="display:inline-block;background:${isMe?'#4a90e2':'#f0f0f0'};color:${isMe?'white':'#333'};padding:8px 12px;border-radius:12px;max-width:75%;font-size:14px;text-align:left;">${msg.text}</div>
-        </div>`;
-    div.scrollTop = div.scrollHeight;
+  const div = document.getElementById('chat-messages');
+  const isMe = currentUser && msg.user_id === currentUser.id;
+  const time = msg.time
+    ? new Date(msg.time).toLocaleString('ru', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
+    : new Date().toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+  div.innerHTML += `<div style="margin-bottom:10px;display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'}">
+    <div style="font-size:11px;color:var(--md-on-surface-disabled);margin-bottom:3px">${msg.full_name} · ${time}</div>
+    <div style="background:${isMe?'var(--md-primary)':'#F0F0F0'};color:${isMe?'white':'var(--md-on-surface)'};padding:10px 14px;border-radius:${isMe?'18px 18px 4px 18px':'18px 18px 18px 4px'};max-width:78%;font-size:14px;line-height:1.4">${msg.text}</div>
+  </div>`;
+  div.scrollTop = div.scrollHeight;
 }
 
 function sendMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text || !chatWs || chatWs.readyState !== 1) return;
-    chatWs.send(JSON.stringify({ text }));
-    input.value = '';
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !chatWs || chatWs.readyState !== 1) return;
+  chatWs.send(JSON.stringify({text}));
+  input.value = '';
 }
 
-// АДМИН
+// ── ADMIN ──
 async function loadAdminUsers() {
-    const res = await fetch('/auth/users', { credentials: 'include' });
-    const users = await res.json();
-    const tbody = document.getElementById('users-tbody');
-    tbody.innerHTML = users.map(u => `
-        <tr>
-            <td>${u.full_name}</td>
-            <td>${u.username}</td>
-            <td>
-                <select class="role-select" onchange="updateRole(${u.id}, this.value)">
-                    <option value="executor" ${u.role==='executor'?'selected':''}>Исполнитель</option>
-                    <option value="dispatcher" ${u.role==='dispatcher'?'selected':''}>Диспетчер</option>
-                    <option value="admin" ${u.role==='admin'?'selected':''}>Администратор</option>
-                </select>
-            </td>
-            <td><input type="password" placeholder="Новый пароль" id="pwd-${u.id}" style="padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;width:130px;" /></td>
-            <td style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button class="btn-sm btn-success" onclick="changePassword(${u.id})">������ Сохранить</button>
-                ${u.id !== currentUser.id ? `<button class="btn-sm btn-danger" onclick="deleteUser(${u.id}, '${u.full_name}')">������️ Удалить</button>` : ''}
-            </td>
-        </tr>
-    `).join('');
+  const res = await fetch('/auth/users', { credentials: 'include' });
+  const users = await res.json();
+  document.getElementById('users-tbody').innerHTML = users.map(u => `
+    <tr>
+      <td>${u.full_name}</td>
+      <td>${u.username}</td>
+      <td><select class="role-select" onchange="updateRole(${u.id},this.value)">
+        <option value="executor" ${u.role==='executor'?'selected':''}>Исполнитель</option>
+        <option value="dispatcher" ${u.role==='dispatcher'?'selected':''}>Диспетчер</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Администратор</option>
+      </select></td>
+      <td><input type="password" placeholder="Новый пароль" id="pwd-${u.id}" style="padding:5px 8px;border:1px solid var(--md-divider);border-radius:4px;font-size:13px;width:120px"/></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm btn-success" onclick="changePassword(${u.id})">Сохранить</button>
+        ${u.id !== currentUser.id ? `<button class="btn-sm btn-danger" onclick="deleteUser(${u.id},'${u.full_name}')">Удалить</button>` : ''}
+      </td>
+    </tr>`).join('');
 }
 
 async function updateRole(userId, role) {
-    await fetch(`/auth/users/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
-        credentials: 'include'
-    });
+  await fetch(`/auth/users/${userId}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({role}), credentials:'include'
+  });
+  showSnack('Роль обновлена');
 }
 
 async function changePassword(userId) {
-    const pwd = document.getElementById('pwd-' + userId).value.trim();
-    if (!pwd) { alert('Введите новый пароль'); return; }
-    const res = await fetch(`/auth/users/${userId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd }),
-        credentials: 'include'
-    });
-    if (res.ok) { alert('Пароль изменён!'); document.getElementById('pwd-' + userId).value = ''; }
+  const pwd = document.getElementById('pwd-'+userId).value.trim();
+  if (!pwd) { showSnack('Введите новый пароль'); return; }
+  const res = await fetch(`/auth/users/${userId}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({password:pwd}), credentials:'include'
+  });
+  if (res.ok) { showSnack('Пароль изменён'); document.getElementById('pwd-'+userId).value=''; }
 }
 
 async function deleteUser(userId, name) {
-    if (!confirm(`Удалить пользователя ${name}?`)) return;
-    await fetch(`/auth/users/${userId}`, { method: 'DELETE', credentials: 'include' });
-    loadAdminUsers();
+  if (!confirm(`Удалить пользователя ${name}?`)) return;
+  await fetch(`/auth/users/${userId}`, {method:'DELETE', credentials:'include'});
+  loadAdminUsers();
+  showSnack('Пользователь удалён');
 }
 
 async function createUser() {
-    const username = document.getElementById('new-username').value.trim();
-    const password = document.getElementById('new-password').value.trim();
-    const full_name = document.getElementById('new-fullname').value.trim();
-    const role = document.getElementById('new-role').value;
-    if (!username || !password || !full_name) { alert('Заполните все поля'); return; }
-    const res = await fetch('/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, full_name, role }),
-        credentials: 'include'
-    });
-    if (res.ok) {
-        alert('Пользователь создан!');
-        document.getElementById('new-username').value = '';
-        document.getElementById('new-password').value = '';
-        document.getElementById('new-fullname').value = '';
-        loadAdminUsers();
-    } else { alert('Ошибка — логин уже занят'); }
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value.trim();
+  const full_name = document.getElementById('new-fullname').value.trim();
+  const role = document.getElementById('new-role').value;
+  if (!username || !password || !full_name) { showSnack('Заполните все поля'); return; }
+  const res = await fetch('/auth/register', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username,password,full_name,role}), credentials:'include'
+  });
+  if (res.ok) {
+    showSnack('Пользователь создан');
+    ['new-username','new-password','new-fullname'].forEach(id => document.getElementById(id).value='');
+    loadAdminUsers();
+  } else { showSnack('Ошибка — логин уже занят'); }
 }
 
+function goToAdmin() { window.location.href = '/admin'; }
+
 async function logout() {
-    await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-    localStorage.removeItem('user');
-    window.location.href = '/';
+  await fetch('/auth/logout', {method:'POST', credentials:'include'});
+  localStorage.removeItem('user');
+  window.location.href = '/';
 }
 
 init();
