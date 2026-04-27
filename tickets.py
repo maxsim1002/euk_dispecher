@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from pydantic import BaseModel
 from database import get_db, pwd_context
 from auth import get_current_user
+from ticket_logger import log_ticket_change
 from typing import Optional, List
 import os
 import uuid
@@ -14,9 +15,33 @@ class TicketCreate(BaseModel):
 
 class TicketUpdate(BaseModel):
     status: Optional[str] = None
-    assigned_to: Optional[int] = None
     deadline: Optional[str] = None
+    priority: Optional[str] = None
     report: Optional[str] = None
+    assigned_to: Optional[int] = None
+
+class TicketExecutorInfo(BaseModel):
+    """Информация об исполнителе на заявке"""
+    id: int
+    username: str
+    full_name: str
+    assigned_at: str
+    assigned_by: Optional[int] = None
+
+class TicketHistoryEntry(BaseModel):
+    """Запись истории изменений заявки"""
+    id: int
+    change_type: str
+    field_name: Optional[str] = None
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    description: Optional[str] = None
+    changed_by: int
+    created_at: str
+
+class ExecutorAssignRequest(BaseModel):
+    """Для админа: добавление исполнителя"""
+    user_id: int
 
 class SettlementCreate(BaseModel):
     name: str
@@ -61,13 +86,25 @@ async def get_tickets(request: Request):
 async def create_ticket(data: TicketCreate, request: Request):
     user = get_current_user(request)
     conn = get_db()
-    conn.execute(
+    cursor = conn.cursor()
+
+    cursor.execute(
         "INSERT INTO tickets (title, description, priority, type, created_by) VALUES (?, ?, ?, ?, ?)",
         (data.title, data.description, data.priority, data.type, user["id"])
     )
     conn.commit()
+
+    # Получить ID созданной заявки
+    ticket_id = cursor.lastrowid
+
+    # Логировать создание заявки
+    log_ticket_change(
+        conn, ticket_id, "ticket_created", user["id"],
+        description="Ticket created"
+    )
+
     conn.close()
-    return {"message": "OK"}
+    return {"message": "OK", "ticket_id": ticket_id}
 
 @router.get("/addresses")
 async def get_addresses(request: Request):
@@ -166,35 +203,133 @@ async def get_ticket(ticket_id: int, request: Request):
     ticket = conn.execute(
         "SELECT * FROM tickets WHERE id = ?", (ticket_id,)
     ).fetchone()
-    conn.close()
+
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ne najdeno")
-    return dict(ticket)
+        conn.close()
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Получить исполнителей
+    executors = conn.execute("""
+        SELECT u.id, u.username, u.full_name, te.assigned_at, te.assigned_by
+        FROM ticket_executors te
+        JOIN users u ON te.user_id = u.id
+        WHERE te.ticket_id = ?
+        ORDER BY te.assigned_at DESC
+    """, (ticket_id,)).fetchall()
+
+    # Получить историю изменений
+    history = conn.execute("""
+        SELECT id, change_type, field_name, old_value, new_value, description, changed_by, created_at
+        FROM ticket_history
+        WHERE ticket_id = ?
+        ORDER BY created_at DESC
+    """, (ticket_id,)).fetchall()
+
+    conn.close()
+
+    return {
+        "ticket": dict(ticket),
+        "executors": [dict(e) for e in executors],
+        "history": [dict(h) for h in history]
+    }
 
 @router.put("/{ticket_id}")
 async def update_ticket(ticket_id: int, data: TicketUpdate, request: Request):
-    get_current_user(request)
+    user = get_current_user(request)
     conn = get_db()
-    if data.status is not None:
+
+    # Получить текущее состояние заявки
+    current_ticket = conn.execute(
+        "SELECT * FROM tickets WHERE id = ?", (ticket_id,)
+    ).fetchone()
+
+    if not current_ticket:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    current_ticket_dict = dict(current_ticket)
+
+    # Проверки при переводе в статус "in_progress"
+    if data.status == "in_progress" and current_ticket_dict.get("status") != "in_progress":
+        executor_count = conn.execute(
+            "SELECT COUNT(*) as count FROM ticket_executors WHERE ticket_id = ?",
+            (ticket_id,)
+        ).fetchone()["count"]
+
+        if executor_count == 0:
+            conn.close()
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot transition to in_progress without executors"
+            )
+
+    # Обновляем и логируем изменения
+    if data.status is not None and data.status != current_ticket_dict.get("status"):
         conn.execute(
             "UPDATE tickets SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
             (data.status, ticket_id)
         )
-    if data.assigned_to is not None:
-        conn.execute(
-            "UPDATE tickets SET assigned_to=? WHERE id=?",
-            (data.assigned_to, ticket_id)
+        log_ticket_change(
+            conn, ticket_id, "status_change", user["id"],
+            field_name="status",
+            old_value=current_ticket_dict.get("status"),
+            new_value=data.status
         )
-    if data.deadline is not None:
+
+    if data.priority is not None and data.priority != current_ticket_dict.get("priority"):
+        conn.execute(
+            "UPDATE tickets SET priority=? WHERE id=?",
+            (data.priority, ticket_id)
+        )
+        log_ticket_change(
+            conn, ticket_id, "priority_update", user["id"],
+            field_name="priority",
+            old_value=current_ticket_dict.get("priority"),
+            new_value=data.priority
+        )
+
+    if data.deadline is not None and data.deadline != current_ticket_dict.get("deadline"):
         conn.execute(
             "UPDATE tickets SET deadline=? WHERE id=?",
             (data.deadline, ticket_id)
         )
-    if data.report is not None:
+        log_ticket_change(
+            conn, ticket_id, "deadline_update", user["id"],
+            field_name="deadline",
+            old_value=current_ticket_dict.get("deadline"),
+            new_value=data.deadline
+        )
+
+    if data.report is not None and data.report != current_ticket_dict.get("report"):
         conn.execute(
             "UPDATE tickets SET report=? WHERE id=?",
             (data.report, ticket_id)
         )
+        log_ticket_change(
+            conn, ticket_id, "report_added", user["id"],
+            field_name="report",
+            new_value=data.report
+        )
+
+    if data.assigned_to is not None and data.assigned_to != current_ticket_dict.get("assigned_to"):
+        # Update assigned_to in tickets table
+        conn.execute(
+            "UPDATE tickets SET assigned_to=? WHERE id=?",
+            (data.assigned_to if data.assigned_to > 0 else None, ticket_id)
+        )
+        # Add to ticket_executors if not already there
+        if data.assigned_to and data.assigned_to > 0:
+            conn.execute(
+                "INSERT OR IGNORE INTO ticket_executors (ticket_id, user_id, assigned_by) VALUES (?, ?, ?)",
+                (ticket_id, data.assigned_to, user["id"])
+            )
+        log_ticket_change(
+            conn, ticket_id, "assignment", user["id"],
+            field_name="executor",
+            old_value=str(current_ticket_dict.get("assigned_to")) if current_ticket_dict.get("assigned_to") else None,
+            new_value=str(data.assigned_to) if data.assigned_to else None
+        )
+
     conn.commit()
     conn.close()
     return {"message": "OK"}
@@ -244,6 +379,107 @@ async def add_comment(
     conn.commit()
     conn.close()
     return {"message": "OK"}
+
+
+# ───────────── EXECUTORS MANAGEMENT ─────────────
+
+@router.post("/{ticket_id}/take")
+async def take_ticket(ticket_id: int, request: Request):
+    """Исполнитель берет заявку на себя"""
+    user = get_current_user(request)
+    conn = get_db()
+
+    # Проверить существование заявки
+    ticket = conn.execute(
+        "SELECT * FROM tickets WHERE id = ?", (ticket_id,)
+    ).fetchone()
+
+    if not ticket:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    ticket_dict = dict(ticket)
+
+    try:
+        # Добавить исполнителя
+        conn.execute(
+            "INSERT OR IGNORE INTO ticket_executors (ticket_id, user_id) VALUES (?, ?)",
+            (ticket_id, user["id"])
+        )
+
+        # Если статус "new", переводим в "in_progress"
+        status_changed = False
+        if ticket_dict.get("status") == "new":
+            conn.execute(
+                "UPDATE tickets SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                ("in_progress", ticket_id)
+            )
+            log_ticket_change(
+                conn, ticket_id, "status_change", user["id"],
+                field_name="status",
+                old_value="new",
+                new_value="in_progress",
+                description="Executor took the ticket"
+            )
+            status_changed = True
+
+        # Логировать добавление исполнителя
+        log_ticket_change(
+            conn, ticket_id, "assignment", user["id"],
+            field_name="executor",
+            new_value=str(user["id"]),
+            description="Self-assigned"
+        )
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "message": "OK",
+            "status_changed": status_changed,
+            "new_status": "in_progress" if status_changed else ticket_dict.get("status")
+        }
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{ticket_id}/executors")
+async def get_executors(ticket_id: int, request: Request):
+    """Получить список исполнителей на заявке"""
+    get_current_user(request)
+    conn = get_db()
+
+    executors = conn.execute("""
+        SELECT u.id, u.username, u.full_name, te.assigned_at, te.assigned_by
+        FROM ticket_executors te
+        JOIN users u ON te.user_id = u.id
+        WHERE te.ticket_id = ?
+        ORDER BY te.assigned_at DESC
+    """, (ticket_id,)).fetchall()
+
+    conn.close()
+    return [dict(e) for e in executors]
+
+
+@router.get("/{ticket_id}/history")
+async def get_ticket_history(ticket_id: int, request: Request, limit: int = 100):
+    """Получить историю изменений заявки"""
+    get_current_user(request)
+    conn = get_db()
+
+    history = conn.execute("""
+        SELECT id, change_type, field_name, old_value, new_value, description, changed_by, created_at
+        FROM ticket_history
+        WHERE ticket_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+    """, (ticket_id, limit)).fetchall()
+
+    conn.close()
+    return [dict(h) for h in history]
+
 
 
 # ───────────── ADMIN ENDPOINTS ─────────────
@@ -585,13 +821,15 @@ SHEET_LABELS = {
     'apartments':  'Квартиры',
     'comments':    'Комментарии',
     'messages':    'Сообщения',
+    'ticket_executors': 'Исполнители заявок',
+    'ticket_history': 'История заявок',
 }
 SHEET_TABLES = {v: k for k, v in SHEET_LABELS.items()}
 
 HEADER_BG    = '1a1a2e'
 HEADER_FG    = 'FFFFFF'
 ALT_ROW      = 'F0F2F5'
-TABLE_ORDER  = ['users', 'tickets', 'settlements', 'streets', 'houses', 'apartments', 'comments', 'messages']
+TABLE_ORDER  = ['users', 'tickets', 'settlements', 'streets', 'houses', 'apartments', 'comments', 'messages', 'ticket_executors', 'ticket_history']
 
 
 def _build_excel(db_data: dict) -> bytes:
@@ -735,3 +973,113 @@ async def import_excel(file: UploadFile = File(...), request: Request = None):
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Ошибка импорта: {str(e)}")
+
+
+# ───────────── EXECUTORS MANAGEMENT ENDPOINTS (ADMIN) ─────────────
+
+@admin_router.post("/tickets/{ticket_id}/executors")
+async def admin_add_executor(ticket_id: int, data: ExecutorAssignRequest, request: Request):
+    """Админ добавляет исполнителя на заявку"""
+    user = check_admin(request)
+    conn = get_db()
+
+    try:
+        # Проверить существование заявки
+        ticket = conn.execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+        if not ticket:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Ticket not found")
+
+        # Проверить существование пользователя
+        executor = conn.execute("SELECT * FROM users WHERE id = ?", (data.user_id,)).fetchone()
+        if not executor:
+            conn.close()
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Добавить исполнителя
+        conn.execute(
+            "INSERT OR IGNORE INTO ticket_executors (ticket_id, user_id, assigned_by) VALUES (?, ?, ?)",
+            (ticket_id, data.user_id, user["id"])
+        )
+
+        # Логировать добавление
+        log_ticket_change(
+            conn, ticket_id, "assignment", user["id"],
+            field_name="executor",
+            new_value=str(data.user_id),
+            description=f"Admin assigned executor {executor['full_name']}"
+        )
+
+        conn.commit()
+        conn.close()
+        return {"message": "OK"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@admin_router.delete("/tickets/{ticket_id}/executors/{user_id}")
+async def admin_remove_executor(ticket_id: int, user_id: int, request: Request):
+    """Админ удаляет исполнителя с заявки"""
+    user = check_admin(request)
+    conn = get_db()
+
+    try:
+        # Проверить существование
+        executor_record = conn.execute(
+            "SELECT * FROM ticket_executors WHERE ticket_id = ? AND user_id = ?",
+            (ticket_id, user_id)
+        ).fetchone()
+
+        if not executor_record:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Executor assignment not found")
+
+        # Удалить исполнителя
+        conn.execute(
+            "DELETE FROM ticket_executors WHERE ticket_id = ? AND user_id = ?",
+            (ticket_id, user_id)
+        )
+
+        # Логировать удаление
+        log_ticket_change(
+            conn, ticket_id, "unassignment", user["id"],
+            field_name="executor",
+            old_value=str(user_id),
+            description="Admin removed executor"
+        )
+
+        # Проверить, остались ли исполнители
+        remaining_executors = conn.execute(
+            "SELECT COUNT(*) as count FROM ticket_executors WHERE ticket_id = ?",
+            (ticket_id,)
+        ).fetchone()["count"]
+
+        # Если нет исполнителей и статус был "in_progress", переводим в "new"
+        if remaining_executors == 0:
+            ticket = conn.execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+            if ticket and dict(ticket).get("status") == "in_progress":
+                conn.execute(
+                    "UPDATE tickets SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                    ("new", ticket_id)
+                )
+                log_ticket_change(
+                    conn, ticket_id, "status_change", user["id"],
+                    field_name="status",
+                    old_value="in_progress",
+                    new_value="new",
+                    description="Status reverted to new (no executors)"
+                )
+
+        conn.commit()
+        conn.close()
+        return {"message": "OK"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        raise HTTPException(status_code=400, detail=str(e))

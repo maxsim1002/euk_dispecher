@@ -1,1374 +1,704 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Администратор - Управление БД</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Администратор</title>
+<style>
+:root {
+  --primary: #1565C0;
+  --primary-dark: #0D47A1;
+  --surface: #FFFFFF;
+  --bg: #F0F2F5;
+  --text: #212121;
+  --text-secondary: #616161;
+  --border: #E0E0E0;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.16);
+  --header-h: 48px;
+  --font: 'Roboto', Arial, sans-serif;
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .nav-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .nav-tabs button {
-            padding: 10px 20px;
-            border: none;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-        }
-
-        .nav-tabs button.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .nav-tabs button:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        .content-section {
-            display: none;
-            animation: fadeIn 0.3s;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .table-container {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #f8f9fa;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        tr:hover {
-            background: #f8f9fa;
-        }
-
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s;
-            margin-right: 5px;
-        }
-
-        .btn-edit {
-            background: #28a745;
-            color: white;
-        }
-
-        .btn-edit:hover {
-            background: #218838;
-        }
-
-        .btn-delete {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-delete:hover {
-            background: #c82333;
-        }
-
-        .btn-add {
-            background: #667eea;
-            color: white;
-            padding: 10px 20px;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-
-        .btn-add:hover {
-            background: #5568d3;
-        }
-
-        .form-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: none;
-        }
-
-        .form-container.active {
-            display: block;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 14px;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-submit {
-            background: #667eea;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .btn-submit:hover {
-            background: #5568d3;
-        }
-
-        .btn-cancel {
-            background: #6c757d;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .btn-cancel:hover {
-            background: #5a6268;
-        }
-
-        .alert {
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .logout {
-            float: right;
-            background: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .logout:hover {
-            background: #c82333;
-        }
-
-        .search-box {
-            margin-bottom: 20px;
-        }
-
-        .search-box input {
-            max-width: 300px;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-new {
-            background: #e7f3ff;
-            color: #004085;
-        }
-
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .role-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .role-admin {
-            background: #cfe2ff;
-            color: #084298;
-        }
-
-        .role-executor {
-            background: #e2e3e5;
-            color: #383d41;
-       
-        .back-to-dashboard {
-    		background: #6c757d;
-	    	color: white;
-	    	padding: 8px 16px;
-	    	border: none;
-	   	border-radius: 4px;
-	    	cursor: pointer;
-	    	margin-right: 15px;
-	}
-	.back-to-dashboard:hover {
-   		 background: #5a6268;
-	}
-
+  --status-new-bg: #FFF3E0; --status-new-c: #E65100;
+  --status-prog-bg: #E3F2FD; --status-prog-c: #1565C0;
+  --status-done-bg: #E8F5E9; --status-done-c: #2E7D32;
+  --status-rej-bg: #FFEBEE;  --status-rej-c: #C62828;
+  --status-post-bg: #F3E5F5; --status-post-c: #6A1B9A;
 }
-    </style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── HEADER ── */
+.header {
+  background: var(--primary); color: #fff;
+  height: var(--header-h);
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: var(--shadow);
+}
+.header-title { font-size: 15px; font-weight: 500; flex: 1; }
+.hbtn {
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius);
+  background: none; color: #fff;
+  font-size: 12px; font-family: var(--font); cursor: pointer;
+}
+.hbtn:hover { background: rgba(255,255,255,0.12); }
+.hbtn.back { background: rgba(255,255,255,0.15); }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto;
+}
+.nav-tab {
+  padding: 10px 14px;
+  border: none; background: none;
+  font-size: 12px; font-weight: 500;
+  font-family: var(--font); color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap; flex-shrink: 0;
+}
+.nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ── CONTENT ── */
+.content { padding: 10px 12px 32px; max-width: 1200px; margin: 0 auto; }
+@media (min-width: 768px) { .content { padding: 14px 20px 32px; } }
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.panel-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #FAFAFA;
+  flex-wrap: wrap; gap: 6px;
+}
+.panel-title { font-size: 13px; font-weight: 500; }
+
+/* ── FILTER ROW ── */
+.filter-row {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.filter-row input, .filter-row select {
+  padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 12px;
+  font-family: var(--font); color: var(--text); outline: none;
+}
+.filter-row input:focus, .filter-row select:focus { border-color: var(--primary); }
+.filter-row input[type="text"] { flex: 1; min-width: 120px; }
+
+/* ── TABLE ── */
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl thead { background: #FAFAFA; }
+.tbl th {
+  padding: 8px 12px; text-align: left;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  cursor: pointer; user-select: none; white-space: nowrap;
+}
+.tbl th:hover { color: var(--primary); }
+.tbl th.sorted { color: var(--primary); }
+.tbl td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover { background: var(--bg); }
+
+/* ── CHIPS ── */
+.chip {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 10px; font-size: 11px; font-weight: 600;
+}
+.chip-new       { background: var(--status-new-bg);  color: var(--status-new-c); }
+.chip-in_progress{ background: var(--status-prog-bg); color: var(--status-prog-c); }
+.chip-done      { background: var(--status-done-bg); color: var(--status-done-c); }
+.chip-rejected  { background: var(--status-rej-bg);  color: var(--status-rej-c); }
+.chip-postponed { background: var(--status-post-bg); color: var(--status-post-c); }
+
+.role-admin      { background:#E8EAF6; color:#3949AB; border-radius:10px; padding:2px 8px; font-size:11px; font-weight:600; }
+.role-dispatcher { background:#E0F2F1; color:#00695C; border-radius:10px; padding:2px 8px; font-size:11px; font-weight:600; }
+.role-executor   { background:#F5F5F5; color:#616161; border-radius:10px; padding:2px 8px; font-size:11px; font-weight:600; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 6px 12px; border: none; border-radius: var(--radius);
+  font-size: 12px; font-weight: 500; font-family: var(--font);
+  cursor: pointer; white-space: nowrap;
+}
+.btn-primary  { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-sm-edit  { background: #E8F5E9; color: #2E7D32; padding: 4px 9px; font-size: 11px; }
+.btn-sm-del   { background: #FFEBEE; color: #C62828; padding: 4px 9px; font-size: 11px; }
+.btn-reset    { background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 10px; font-size: 12px; border-radius: var(--radius); cursor: pointer; font-family: var(--font); }
+.btn-reset:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── INLINE FORM ── */
+.inline-form {
+  display: none; background: #F5F7FA;
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  gap: 8px; flex-wrap: wrap; align-items: flex-end;
+}
+.inline-form.open { display: flex; }
+.inline-form .fld { display: flex; flex-direction: column; gap: 3px; min-width: 140px; flex: 1; }
+.inline-form label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); }
+.inline-form input, .inline-form select {
+  padding: 6px 8px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 13px;
+  font-family: var(--font); outline: none; width: 100%;
+}
+.inline-form input:focus, .inline-form select:focus { border-color: var(--primary); }
+
+/* ── BACKUP ── */
+.backup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+@media (max-width: 560px) { .backup-grid { grid-template-columns: 1fr; } }
+.backup-block { display: flex; flex-direction: column; gap: 8px; }
+.backup-block h3 { font-size: 13px; font-weight: 500; }
+.backup-block p  { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+input[type="file"] {
+  font-size: 12px; font-family: var(--font);
+  border: 1px dashed var(--border); border-radius: var(--radius);
+  padding: 6px 8px; width: 100%;
+}
+
+/* ── OVERFLOW SCROLL ── */
+.tbl-wrap { overflow-x: auto; }
+
+/* ── EMPTY ── */
+.empty-td { text-align:center; padding:28px; color:#BDBDBD; font-size:13px; }
+
+/* ── SNACK ── */
+.snack {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: #323232; color: #fff;
+  padding: 10px 18px; border-radius: var(--radius-lg);
+  font-size: 13px; white-space: nowrap;
+  z-index: 300; display: none; box-shadow: var(--shadow);
+}
+
+/* ── ALERT ── */
+.alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 10px; display: none; }
+.alert-ok  { background: #E8F5E9; color: #2E7D32; }
+.alert-err { background: #FFEBEE; color: #C62828; }
+</style>
 </head>
 <body>
-    <div class="header">
-        <div class="container">
-            <button class="back-to-dashboard" onclick="location.href='/static/dashboard.html'">← Основное меню</button> 
-            <h1>Администратор - Управление базами данных</h1>
-            <button class="logout" onclick="logout()">Выход</button>
+
+<div class="header">
+  <span class="header-title">Администратор — Управление</span>
+  <button class="hbtn back" onclick="location.href='/static/dashboard.html'">← Меню</button>
+  <button class="hbtn" onclick="logout()">Выйти</button>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" data-sec="users"       onclick="switchTab(this,'users')">Пользователи</button>
+  <button class="nav-tab"        data-sec="tickets"     onclick="switchTab(this,'tickets')">Заявки</button>
+  <button class="nav-tab"        data-sec="settlements" onclick="switchTab(this,'settlements')">Поселения</button>
+  <button class="nav-tab"        data-sec="streets"     onclick="switchTab(this,'streets')">Улицы</button>
+  <button class="nav-tab"        data-sec="houses"      onclick="switchTab(this,'houses')">Дома</button>
+  <button class="nav-tab"        data-sec="apartments"  onclick="switchTab(this,'apartments')">Квартиры</button>
+  <button class="nav-tab"        data-sec="backup"      onclick="switchTab(this,'backup')">Импорт/Экспорт</button>
+</div>
+
+<div class="content">
+  <div class="alert" id="msg"></div>
+
+  <!-- ─── ПОЛЬЗОВАТЕЛИ ─── -->
+  <div id="sec-users">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Пользователи</span>
+        <button class="btn btn-primary" onclick="openUserForm()">+ Добавить</button>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="u-search" placeholder="Поиск по имени / логину" oninput="applyUserFilters()" />
+        <select id="u-role-filter" onchange="applyUserFilters()">
+          <option value="">Все роли</option>
+          <option value="admin">Администратор</option>
+          <option value="dispatcher">Диспетчер</option>
+          <option value="executor">Исполнитель</option>
+        </select>
+        <button class="btn-reset" onclick="resetUserFilters()">Сбросить</button>
+      </div>
+      <div class="inline-form" id="user-form">
+        <input type="hidden" id="u-id" />
+        <div class="fld"><label>Логин</label><input type="text" id="u-username" /></div>
+        <div class="fld"><label>Пароль</label><input type="password" id="u-password" placeholder="Оставьте пустым чтобы не менять" /></div>
+        <div class="fld"><label>Полное имя</label><input type="text" id="u-fullname" /></div>
+        <div class="fld"><label>Роль</label>
+          <select id="u-role">
+            <option value="executor">Исполнитель</option>
+            <option value="dispatcher">Диспетчер</option>
+            <option value="admin">Администратор</option>
+          </select>
         </div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveUser()">Сохранить</button>
+          <button class="btn-reset" onclick="closeUserForm()">Отмена</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl" id="users-tbl">
+          <thead><tr>
+            <th onclick="sortUsers('id')">ID</th>
+            <th onclick="sortUsers('username')">Логин</th>
+            <th onclick="sortUsers('full_name')">Полное имя</th>
+            <th onclick="sortUsers('role')">Роль</th>
+            <th onclick="sortUsers('created_at')">Создан</th>
+            <th>Действия</th>
+          </tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <div class="container">
-        <div id="message"></div>
-
-        <div class="nav-tabs">
-            <button class="nav-btn active" data-section="users">ߑŠПользователи</button>
-            <button class="nav-btn" data-section="tickets">ߎ࠯؏ Заявки</button>
-            <button class="nav-btn" data-section="settlements">ߏگ؏ Поселения</button>
-            <button class="nav-btn" data-section="streets">ߛį؏ Улицы</button>
-            <button class="nav-btn" data-section="houses">ߏٯ؏ Дома</button>
-            <button class="nav-btn" data-section="apartments">ߔѠКвартиры</button>
-            <button class="nav-btn" data-section="backup">ߒޠИмпорт/Экспорт</button>
-        </div>
-
-        <!-- ПОЛЬЗОВАТЕЛИ -->
-        <div id="users" class="content-section active">
-            <h2>Управление пользователями</h2>
-            <button class="btn-add" onclick="openUserForm()">+ Добавить пользователя</button>
-
-	<div class="filter-bar" style="display: flex; gap: 10px; margin: 15px 0; align-items: center;">
-	    <input type="text" id="user-filter-search" placeholder="Поиск по ФИО или логину" style="flex: 1; padding: 8px 12px;">
-	    <select id="user-filter-role">
-	        <option value="">Все роли</option>
-	        <option value="admin">Админ</option>
-	        <option value="dispatcher">Диспетчер</option>
-	        <option value="executor">Исполнитель</option>
-	    </select>
-	    <button class="btn-reset" onclick="resetUserFilters()">Сбросить</button>
-	</div>
-
-            <div id="userForm" class="form-container">
-                <h3 id="userFormTitle">Добавить пользователя</h3>
-                <form onsubmit="saveUser(event)">
-                    <input type="hidden" id="userId">
-                    <div class="form-group">
-                        <label>Логин:</label>
-                        <input type="text" id="userUsername" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Пароль:</label>
-                        <input type="password" id="userPassword">
-                    </div>
-                    <div class="form-group">
-                        <label>ФИО:</label>
-                        <input type="text" id="userFullName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Роль:</label>
-                        <select id="userRole">
-                            <option value="executor">Исполнитель</option>
-                            <option value="admin">Администратор</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit">Сохранить</button>
-                        <button type="button" class="btn-cancel" onclick="closeUserForm()">Отмена</button>
-                    </div>
-                </form>
-            </div>
-            <div class="table-container">
-                <table id="usersTable">
-		                    <thead>
-		    <tr>
-		        <th onclick="sortUsers('id')">ID</th>
-		        <th onclick="sortUsers('username')">Логин</th>
-		        <th onclick="sortUsers('full_name')">ФИО</th>
-		        <th onclick="sortUsers('role')">Роль</th>
-		        <th onclick="sortUsers('created_at')">Дата создания</th>
-		        <th>Действия</th>
-		    </tr>
-		</thead>                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ЗАЯВКИ -->
-        <div id="tickets" class="content-section">
-
-		<div class="filter-bar" style="display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap;">
-		    <select id="ticket-filter-status">
-		        <option value="">Все статусы</option>
-		        <option value="new">Новая</option>
-		        <option value="in_progress">В работе</option>
-		        <option value="done">Выполнено</option>
-		        <option value="rejected">Отказано</option>
-		        <option value="postponed">Перенос</option>
-		    </select>
-		    <select id="ticket-filter-type">
-		        <option value="">Все типы</option>
-		        <option value="Водоснабжение">Водоснабжение</option>
-		        <option value="Канализация">Канализация</option>
-		        <option value="Вентиляция">Вентиляция</option>
-		        <option value="Газоснабжение">Газоснабжение</option>
-		        <option value="Электроснабжение">Электроснабжение</option>
-		        <option value="Благоустройство">Благоустройство</option>
-		        <option value="Кровля">Кровля</option>
-		        <option value="Прочие">Прочие</option>
-		    </select>
-		    <input type="text" id="ticket-filter-search" placeholder="Поиск по заголовку" style="flex:1; padding:8px;">
-		    <button class="btn-reset" onclick="resetTicketFilters()">Сбросить</button>
-		</div>
-
-            <h2>Управление заявками</h2>
-            <div class="table-container">
-                <table id="ticketsTable">
-	        <thead>
-		    <tr>
-		        <th onclick="sortTickets('id')">ID</th>
-		        <th onclick="sortTickets('title')">Заголовок</th>
-		        <th onclick="sortTickets('status')">Статус</th>
-		        <th onclick="sortTickets('priority')">Приоритет</th>
-		        <th onclick="sortTickets('type')">Тип</th>
-		        <th onclick="sortTickets('created_at')">Дата создания</th>
-		        <th>Действия</th>
-		    </tr>
-		</thead>                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ПОСЕЛЕНИЯ -->
-        <div id="settlements" class="content-section">
-            <h2>Управление поселениями</h2>
-            <button class="btn-add" onclick="openSettlementForm()">+ Добавить поселение</button>
-            <div id="settlementForm" class="form-container">
-                <h3>Добавить поселение</h3>
-                <form onsubmit="saveSettlement(event)">
-                    <input type="hidden" id="settlementId">
-                    <div class="form-group">
-                        <label>Название:</label>
-                        <input type="text" id="settlementName" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit">Сохранить</button>
-                        <button type="button" class="btn-cancel" onclick="closeSettlementForm()">Отмена</button>
-                    </div>
-                </form>
-            </div>
-            <div class="table-container">
-                <table id="settlementsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- УЛИЦЫ -->
-        <div id="streets" class="content-section">
-            <h2>Управление улицами</h2>
-            <button class="btn-add" onclick="openStreetForm()">+ Добавить улицу</button>
-            <div id="streetForm" class="form-container">
-                <h3>Добавить улицу</h3>
-                <form onsubmit="saveStreet(event)">
-                    <input type="hidden" id="streetId">
-                    <div class="form-group">
-                        <label>Поселение:</label>
-                        <select id="streetSettlement" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Название:</label>
-                        <input type="text" id="streetName" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit">Сохранить</button>
-                        <button type="button" class="btn-cancel" onclick="closeStreetForm()">Отмена</button>
-                    </div>
-                </form>
-            </div>
-            <div class="table-container">
-                <table id="streetsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Поселение</th>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ДОМА -->
-        <div id="houses" class="content-section">
-            <h2>Управление домами</h2>
-            <button class="btn-add" onclick="openHouseForm()">+ Добавить дом</button>
-            <div id="houseForm" class="form-container">
-                <h3>Добавить дом</h3>
-                <form onsubmit="saveHouse(event)">
-                    <input type="hidden" id="houseId">
-                    <div class="form-group">
-                        <label>Улица:</label>
-                        <select id="houseStreet" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Номер дома:</label>
-                        <input type="text" id="houseNumber" required>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit">Сохранить</button>
-                        <button type="button" class="btn-cancel" onclick="closeHouseForm()">Отмена</button>
-                    </div>
-                </form>
-            </div>
-            <div class="table-container">
-                <table id="housesTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Улица</th>
-                            <th>Номер</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- КВАРТИРЫ -->
-        <div id="apartments" class="content-section">
-            <h2>Управление квартирами</h2>
-            <button class="btn-add" onclick="openApartmentForm()">+ Добавить квартиру</button>
-            <div id="apartmentForm" class="form-container">
-                <h3>Добавить квартиру</h3>
-                <form onsubmit="saveApartment(event)">
-                    <input type="hidden" id="apartmentId">
-                    <div class="form-group">
-                        <label>Дом:</label>
-                        <select id="apartmentHouse" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Номер квартиры:</label>
-                        <input type="text" id="apartmentNumber" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Телефон:</label>
-                        <input type="tel" id="apartmentPhone">
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn-submit">Сохранить</button>
-                        <button type="button" class="btn-cancel" onclick="closeApartmentForm()">Отмена</button>
-                    </div>
-                </form>
-            </div>
-            <div class="table-container">
-                <table id="apartmentsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Адрес</th>
-                            <th>Номер</th>
-                            <th>Телефон</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ИМПОРТ/ЭКСПОРТ -->
-        <div id="backup" class="content-section">
-            <h2>Импорт / Экспорт базы данных (Excel)</h2>
-
-            <div id="backup-message"></div>
-
-            <!-- ЭКСПОРТ -->
-            <div class="table-container" style="padding: 24px; margin-bottom: 20px;">
-                <h3 style="margin-bottom: 8px;">📥 Экспорт в Excel</h3>
-                <p style="color: #666; margin-bottom: 16px;">
-                    Скачать все таблицы одним файлом <code>.xlsx</code>. Каждая таблица — отдельный лист:
-                    Пользователи, Заявки, Поселения, Улицы, Дома, Квартиры, Комментарии, Сообщения.
-                </p>
-                <button class="btn-add" id="exportBtn" onclick="exportExcel()">
-                    📊 Скачать базу данных (.xlsx)
-                </button>
-            </div>
-
-            <!-- ИМПОРТ -->
-            <div class="table-container" style="padding: 24px;">
-                <h3 style="margin-bottom: 8px;">📤 Импорт из Excel</h3>
-                <p style="color: #666; margin-bottom: 6px;">
-                    Загрузить ранее экспортированный файл <code>.xlsx</code> обратно в базу данных.
-                </p>
-                <p style="color: #dc3545; font-size: 13px; margin-bottom: 16px;">
-                    ⚠️ Существующие записи будут заменены данными из файла.
-                </p>
-
-                <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 20px; text-align: center; max-width: 460px; cursor: pointer; transition: background 0.2s;" 
-                     id="dropZone"
-                     ondragover="event.preventDefault(); this.style.background='#f0f0ff'"
-                     ondragleave="this.style.background=''"
-                     ondrop="handleDrop(event)">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
-                    <div style="font-weight: bold; margin-bottom: 4px;">Перетащите файл сюда</div>
-                    <div style="color: #888; font-size: 13px; margin-bottom: 12px;">или нажмите кнопку ниже</div>
-                    <input type="file" id="importFile" accept=".xlsx" style="display:none" onchange="handleFileSelect(this)">
-                    <button class="btn-submit" type="button" onclick="document.getElementById('importFile').click()">Выбрать файл .xlsx</button>
-                </div>
-
-                <div id="selectedFile" style="margin-top: 12px; font-size: 14px; color: #444; display:none;">
-                    <strong>Выбран файл:</strong> <span id="selectedFileName"></span>
-                    <button class="btn btn-delete" style="margin-left: 10px; padding: 4px 10px; font-size: 12px;" onclick="clearFile()">✕</button>
-                </div>
-
-                <button class="btn-add" id="importBtn" onclick="importExcel()" style="margin-top: 16px; display:none;">
-                    ⬆️ Загрузить в базу данных
-                </button>
-            </div>
-        </div>
+  <!-- ─── ЗАЯВКИ ─── -->
+  <div id="sec-tickets" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Заявки</span>
+        <span id="tickets-count" style="font-size:12px;color:var(--text-secondary)"></span>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="t-search" placeholder="Поиск по заголовку" oninput="applyTicketFilters()" />
+        <select id="t-status-filter" onchange="applyTicketFilters()">
+          <option value="">Все статусы</option>
+          <option value="new">Новая</option>
+          <option value="in_progress">В работе</option>
+          <option value="done">Выполнено</option>
+          <option value="rejected">Отказано</option>
+          <option value="postponed">Перенос</option>
+        </select>
+        <select id="t-type-filter" onchange="applyTicketFilters()">
+          <option value="">Все типы</option>
+          <option value="Водоснабжение">Водоснабжение</option>
+          <option value="Канализация">Канализация</option>
+          <option value="Вентиляция">Вентиляция</option>
+          <option value="Газоснабжение">Газоснабжение</option>
+          <option value="Электроснабжение">Электроснабжение</option>
+          <option value="Благоустройство">Благоустройство</option>
+          <option value="Кровля">Кровля</option>
+          <option value="Прочие">Прочие</option>
+        </select>
+        <button class="btn-reset" onclick="resetTicketFilters()">Сбросить</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th onclick="sortTickets('id')">ID</th>
+            <th onclick="sortTickets('title')">Заголовок</th>
+            <th onclick="sortTickets('status')">Статус</th>
+            <th onclick="sortTickets('type')">Тип</th>
+            <th onclick="sortTickets('priority')">Приоритет</th>
+            <th onclick="sortTickets('created_at')">Создана</th>
+            <th>Действия</th>
+          </tr></thead>
+          <tbody id="tickets-tbody"></tbody>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // Проверка авторизации
-        window.addEventListener('load', function() {
-            const userData = localStorage.getItem('user');
-            if (!userData) {
-                window.location.href = '/';
-                return;
-            }
-            const user = JSON.parse(userData);
-            if (user.role !== 'admin') {
-                window.location.href = '/';
-                return;
-            }
-        });
+  <!-- ─── ПОСЕЛЕНИЯ ─── -->
+  <div id="sec-settlements" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Поселения</span>
+        <button class="btn btn-primary" onclick="openSettlForm()">+ Добавить</button>
+      </div>
+      <div class="inline-form" id="settl-form">
+        <input type="hidden" id="s-id" />
+        <div class="fld"><label>Название</label><input type="text" id="s-name" /></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveSettlement()">Сохранить</button>
+          <button class="btn-reset" onclick="closeSettlForm()">Отмена</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Название</th><th>Действия</th></tr></thead>
+          <tbody id="settl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-        // Tab navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-                this.classList.add('active');
-                const section = this.getAttribute('data-section');
-                document.getElementById(section).classList.add('active');
-                loadSection(section);
-            });
-        });
+  <!-- ─── УЛИЦЫ ─── -->
+  <div id="sec-streets" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Улицы</span>
+        <button class="btn btn-primary" onclick="openStreetForm()">+ Добавить</button>
+      </div>
+      <div class="inline-form" id="street-form">
+        <input type="hidden" id="str-id" />
+        <div class="fld"><label>Поселение</label><select id="str-settlement"></select></div>
+        <div class="fld"><label>Название</label><input type="text" id="str-name" /></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveStreet()">Сохранить</button>
+          <button class="btn-reset" onclick="closeStreetForm()">Отмена</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Поселение</th><th>Улица</th><th>Действия</th></tr></thead>
+          <tbody id="streets-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-        function loadSection(section) {
-            switch(section) {
-                case 'users': loadUsers(); break;
-                case 'tickets': loadTickets(); break;
-                case 'settlements': loadSettlements(); break;
-                case 'streets': loadStreets(); break;
-                case 'houses': loadHouses(); break;
-                case 'addresses': loadAddresses(); break;
-            }
-        }
+  <!-- ─── ДОМА ─── -->
+  <div id="sec-houses" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Дома</span>
+        <button class="btn btn-primary" onclick="openHouseForm()">+ Добавить</button>
+      </div>
+      <div class="inline-form" id="house-form">
+        <input type="hidden" id="h-id" />
+        <div class="fld"><label>Улица</label><select id="h-street"></select></div>
+        <div class="fld"><label>Номер</label><input type="text" id="h-number" /></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveHouse()">Сохранить</button>
+          <button class="btn-reset" onclick="closeHouseForm()">Отмена</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Поселение</th><th>Улица</th><th>Номер</th><th>Действия</th></tr></thead>
+          <tbody id="houses-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('message');
-            msgDiv.innerHTML = `<div class="alert alert-${type}">${text}</div>`;
-            setTimeout(() => msgDiv.innerHTML = '', 8000);
-        }
+  <!-- ─── КВАРТИРЫ ─── -->
+  <div id="sec-apartments" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar">
+        <span class="panel-title">Квартиры</span>
+        <button class="btn btn-primary" onclick="openAptForm()">+ Добавить</button>
+      </div>
+      <div class="inline-form" id="apt-form">
+        <input type="hidden" id="apt-id" />
+        <div class="fld"><label>Дом</label><select id="apt-house"></select></div>
+        <div class="fld"><label>Номер квартиры</label><input type="text" id="apt-number" /></div>
+        <div class="fld"><label>Телефон</label><input type="tel" id="apt-phone" /></div>
+        <div style="display:flex;gap:6px;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveApt()">Сохранить</button>
+          <button class="btn-reset" onclick="closeAptForm()">Отмена</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>ID</th><th>Адрес</th><th>Квартира</th><th>Телефон</th><th>Действия</th></tr></thead>
+          <tbody id="apts-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-        async function handleResponse(res, successMsg, errorMsg) {
-            if (res.ok) {
-                showMessage(successMsg, 'success');
-                return true;
-            } else {
-                try {
-                    const error = await res.json();
-                    showMessage(`${errorMsg}: ${error.detail || error.message || 'неизвестная ошибка'}`, 'error');
-                } catch {
-                    showMessage(`${errorMsg} (HTTP ${res.status})`, 'error');
-                }
-                return false;
-            }
-        }
+  <!-- ─── ИМПОРТ/ЭКСПОРТ ─── -->
+  <div id="sec-backup" style="display:none">
+    <div class="panel">
+      <div class="panel-toolbar"><span class="panel-title">Резервное копирование</span></div>
+      <div class="backup-grid">
+        <div class="backup-block">
+          <h3>Экспорт данных</h3>
+          <p>Скачать всю базу данных в формате JSON для резервной копии.</p>
+          <button class="btn btn-primary" onclick="exportDb()" style="align-self:flex-start">Скачать JSON</button>
+        </div>
+        <div class="backup-block">
+          <h3>Импорт данных</h3>
+          <p>Восстановить базу данных из ранее сохранённого JSON-файла.</p>
+          <input type="file" id="import-file" accept=".json" />
+          <button class="btn btn-primary" onclick="importDb()" style="align-self:flex-start">Загрузить</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // ПОЛЬЗОВАТЕЛИ
-	 let allUsers = [];
-	let userSortField = 'id';
-	let userSortDir = -1;
-	
-	async function loadUsers() {
-	    try {
-	        const res = await fetch('/admin/users');
-	        allUsers = await res.json();
-	        applyUserFilters();
-	    } catch(err) {
-	        showMessage('Ошибка загрузки пользователей', 'error');
-	    }
-	}
-	
-	function applyUserFilters() {
-	    let filtered = [...allUsers];
-	    const search = document.getElementById('user-filter-search').value.toLowerCase();
-	    const role = document.getElementById('user-filter-role').value;
-	    
-	    if (search) {
-	        filtered = filtered.filter(u => 
-	            u.full_name.toLowerCase().includes(search) || 
-	            u.username.toLowerCase().includes(search)
-	        );
-	    }
-	    if (role) filtered = filtered.filter(u => u.role === role);
-	    
-	    filtered.sort((a,b) => {
-	        let va = a[userSortField];
-	        let vb = b[userSortField];
-	        if (va === undefined) va = '';
-	        if (vb === undefined) vb = '';
-	        if (va < vb) return -1 * userSortDir;
-	        if (va > vb) return 1 * userSortDir;
-	        return 0;
-	    });
-	    
-	    renderUserTable(filtered);
-	}
-	
-	function renderUserTable(users) {
-	    const tbody = document.querySelector('#usersTable tbody');
-	    tbody.innerHTML = users.map(u => `
-	        <tr>
-	            <td>${u.id}</td>
-	            <td>${u.username}</td>
-	            <td>${u.full_name}</td>
-	            <td><span class="role-badge role-${u.role}">${u.role}</span></td>
-	            <td>${new Date(u.created_at).toLocaleDateString('ru-RU')}</td>
-	            <td>
-	                <button class="btn btn-edit" onclick="editUser(${u.id})">Ред.</button>
-	                <button class="btn btn-delete" onclick="deleteUser(${u.id})">Удал.</button>
-	            </td>
-	        </tr>
-	    `).join('');
-	}
-	
-	function sortUsers(field) {
-	    if (userSortField === field) userSortDir *= -1;
-	    else { userSortField = field; userSortDir = -1; }
-	    applyUserFilters();
-	}
-	
-	function resetUserFilters() {
-	    document.getElementById('user-filter-search').value = '';
-	    document.getElementById('user-filter-role').value = '';
-	    applyUserFilters();
-	}
+</div>
 
-        function openUserForm() {
-            document.getElementById('userForm').classList.add('active');
-            document.getElementById('userId').value = '';
-            document.getElementById('userFormTitle').textContent = 'Добавить пользователя';
-            document.getElementById('userUsername').value = '';
-            document.getElementById('userPassword').value = '';
-            document.getElementById('userFullName').value = '';
-            document.getElementById('userRole').value = 'executor';
-        }
+<div class="snack" id="snack"></div>
 
-        function closeUserForm() {
-            document.getElementById('userForm').classList.remove('active');
-        }
+<script>
+let allUsers=[], allTickets=[];
+let uSort={f:'id',d:-1}, tSort={f:'id',d:-1};
 
-        async function editUser(id) {
-            try {
-                const res = await fetch(`/admin/users/${id}`);
-                const user = await res.json();
-                document.getElementById('userId').value = user.id;
-                document.getElementById('userUsername').value = user.username;
-                document.getElementById('userPassword').value = '';
-                document.getElementById('userFullName').value = user.full_name;
-                document.getElementById('userRole').value = user.role;
-                document.getElementById('userFormTitle').textContent = 'Редактировать пользователя';
-                document.getElementById('userForm').classList.add('active');
-            } catch(err) {
-                showMessage('Ошибка загрузки пользователя', 'error');
-            }
-        }
+function snack(msg) {
+  const el=document.getElementById('snack');
+  el.textContent=msg; el.style.display='block';
+  setTimeout(()=>el.style.display='none',2800);
+}
+function showMsg(text,type) {
+  const el=document.getElementById('msg');
+  el.textContent=text; el.className=`alert alert-${type}`; el.style.display='block';
+  setTimeout(()=>el.style.display='none',5000);
+}
 
-        async function saveUser(e) {
-            e.preventDefault();
-            const id = document.getElementById('userId').value;
-            const data = {
-                username: document.getElementById('userUsername').value,
-                full_name: document.getElementById('userFullName').value,
-                role: document.getElementById('userRole').value
-            };
-            const password = document.getElementById('userPassword').value;
-            if (password) data.password = password;
+window.addEventListener('load',()=>{
+  const ud=localStorage.getItem('user');
+  if (!ud) { window.location.href='/'; return; }
+  const user=JSON.parse(ud);
+  if (user.role!=='admin') { window.location.href='/'; return; }
+  loadUsers();
+});
 
-            try {
-                const method = id ? 'PUT' : 'POST';
-                const url = id ? `/admin/users/${id}` : '/admin/users';
-                const res = await fetch(url, {
-                    method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                if (await handleResponse(res, 'Пользователь сохранен', 'Ошибка сохранения пользователя')) {
-                    closeUserForm();
-                    loadUsers();
-                }
-            } catch(err) {
-                showMessage(`Ошибка: ${err.message}`, 'error');
-            }
-        }
+function switchTab(btn,sec) {
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['users','tickets','settlements','streets','houses','apartments','backup'].forEach(s=>{
+    document.getElementById('sec-'+s).style.display=s===sec?'block':'none';
+  });
+  const loaders={tickets:loadTickets,settlements:loadSettlements,streets:loadStreets,houses:loadHouses,apartments:loadApts};
+  if (loaders[sec]) loaders[sec]();
+}
 
-        async function deleteUser(id) {
-            if (!confirm('Удалить пользователя?')) return;
-            try {
-                const res = await fetch(`/admin/users/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Пользователь удален', 'success');
-                    loadUsers();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
+// ── ПОЛЬЗОВАТЕЛИ ──
+async function loadUsers() {
+  const res=await fetch('/admin/users'); allUsers=await res.json(); applyUserFilters();
+}
+let uSortF='id', uSortD=-1;
+function applyUserFilters() {
+  let f=[...allUsers];
+  const s=document.getElementById('u-search').value.toLowerCase();
+  const r=document.getElementById('u-role-filter').value;
+  if(s) f=f.filter(u=>u.full_name.toLowerCase().includes(s)||u.username.toLowerCase().includes(s));
+  if(r) f=f.filter(u=>u.role===r);
+  f.sort((a,b)=>{
+    let va=a[uSortF]??'', vb=b[uSortF]??'';
+    return va<vb?-uSortD:va>vb?uSortD:0;
+  });
+  document.getElementById('users-tbody').innerHTML=f.length?f.map(u=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${u.id}</td>
+    <td>${u.username}</td>
+    <td>${u.full_name}</td>
+    <td><span class="role-${u.role}">${u.role==='admin'?'Администратор':u.role==='dispatcher'?'Диспетчер':'Исполнитель'}</span></td>
+    <td style="font-size:12px;color:var(--text-secondary)">${new Date(u.created_at).toLocaleDateString('ru')}</td>
+    <td><button class="btn btn-sm-edit" onclick="editUser(${u.id})">Ред.</button>
+        <button class="btn btn-sm-del" onclick="delUser(${u.id})">Удал.</button></td>
+  </tr>`).join(''):`<tr><td colspan="6" class="empty-td">Пользователей не найдено</td></tr>`;
+}
+function sortUsers(f) { if(uSortF===f)uSortD*=-1;else{uSortF=f;uSortD=-1;} applyUserFilters(); }
+function resetUserFilters() { document.getElementById('u-search').value=''; document.getElementById('u-role-filter').value=''; applyUserFilters(); }
 
-        // ЗАЯВКИ
-        let allTickets = [];
-let ticketSortField = 'id';
-let ticketSortDir = -1;
+function openUserForm() { document.getElementById('u-id').value=''; document.getElementById('u-username').value=''; document.getElementById('u-password').value=''; document.getElementById('u-fullname').value=''; document.getElementById('u-role').value='executor'; document.getElementById('user-form').classList.add('open'); }
+function closeUserForm() { document.getElementById('user-form').classList.remove('open'); }
 
+async function editUser(id) {
+  const res=await fetch(`/admin/users/${id}`);
+  const u=await res.json();
+  document.getElementById('u-id').value=u.id;
+  document.getElementById('u-username').value=u.username;
+  document.getElementById('u-password').value='';
+  document.getElementById('u-fullname').value=u.full_name;
+  document.getElementById('u-role').value=u.role;
+  document.getElementById('user-form').classList.add('open');
+}
+async function saveUser() {
+  const id=document.getElementById('u-id').value;
+  const data={username:document.getElementById('u-username').value,full_name:document.getElementById('u-fullname').value,role:document.getElementById('u-role').value};
+  const pwd=document.getElementById('u-password').value;
+  if(pwd) data.password=pwd;
+  const res=await fetch(id?`/admin/users/${id}`:'/admin/users',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(res.ok){closeUserForm();loadUsers();snack('Пользователь сохранён');}
+  else{const e=await res.json();showMsg(e.detail||'Ошибка','err');}
+}
+async function delUser(id) {
+  if(!confirm('Удалить пользователя?')) return;
+  const res=await fetch(`/admin/users/${id}`,{method:'DELETE'});
+  if(res.ok){loadUsers();snack('Удалён');}
+}
+
+// ── ЗАЯВКИ ──
+const SL={new:'Новая',in_progress:'В работе',done:'Выполнено',rejected:'Отказано',postponed:'Перенос'};
+const PL={normal:'Обычный',high:'Высокий',critical:'Критический'};
+let tSortF='id', tSortD=-1;
 async function loadTickets() {
-    try {
-        const res = await fetch('/tickets/');
-        allTickets = await res.json();
-        applyTicketFilters();
-    } catch(err) {
-        showMessage('Ошибка загрузки заявок', 'error');
-    }
+  const res=await fetch('/tickets/'); allTickets=await res.json(); applyTicketFilters();
 }
-
 function applyTicketFilters() {
-    let filtered = [...allTickets];
-    const status = document.getElementById('ticket-filter-status').value;
-    const type = document.getElementById('ticket-filter-type').value;
-    const search = document.getElementById('ticket-filter-search').value.toLowerCase();
-    
-    if (status) filtered = filtered.filter(t => t.status === status);
-    if (type) filtered = filtered.filter(t => t.type === type);
-    if (search) filtered = filtered.filter(t => t.title.toLowerCase().includes(search));
-    
-    filtered.sort((a,b) => {
-        let va = a[ticketSortField];
-        let vb = b[ticketSortField];
-        if (va === undefined) va = '';
-        if (vb === undefined) vb = '';
-        if (va < vb) return -1 * ticketSortDir;
-        if (va > vb) return 1 * ticketSortDir;
-        return 0;
-    });
-    
-    renderTicketTable(filtered);
+  let f=[...allTickets];
+  const s=document.getElementById('t-search').value.toLowerCase();
+  const st=document.getElementById('t-status-filter').value;
+  const ty=document.getElementById('t-type-filter').value;
+  if(s) f=f.filter(t=>t.title.toLowerCase().includes(s));
+  if(st) f=f.filter(t=>t.status===st);
+  if(ty) f=f.filter(t=>t.type===ty);
+  f.sort((a,b)=>{
+    let va=a[tSortF]??'', vb=b[tSortF]??'';
+    return va<vb?-tSortD:va>vb?tSortD:0;
+  });
+  document.getElementById('tickets-count').textContent=`${f.length} из ${allTickets.length}`;
+  document.getElementById('tickets-tbody').innerHTML=f.length?f.map(t=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${t.id}</td>
+    <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</td>
+    <td><span class="chip chip-${t.status}">${SL[t.status]||t.status}</span></td>
+    <td>${t.type||'Прочие'}</td>
+    <td>${PL[t.priority]||t.priority}</td>
+    <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap">${new Date(t.created_at).toLocaleDateString('ru')}</td>
+    <td><button class="btn btn-sm-del" onclick="delTicket(${t.id})">Удал.</button></td>
+  </tr>`).join(''):`<tr><td colspan="7" class="empty-td">Заявок не найдено</td></tr>`;
+}
+function sortTickets(f){if(tSortF===f)tSortD*=-1;else{tSortF=f;tSortD=-1;}applyTicketFilters();}
+function resetTicketFilters(){document.getElementById('t-search').value='';document.getElementById('t-status-filter').value='';document.getElementById('t-type-filter').value='';applyTicketFilters();}
+async function delTicket(id){if(!confirm('Удалить заявку?'))return;const res=await fetch(`/admin/tickets/${id}`,{method:'DELETE'});if(res.ok){loadTickets();snack('Заявка удалена');}}
+
+// ── ПОСЕЛЕНИЯ ──
+async function loadSettlements(){
+  const res=await fetch('/tickets/settlements');
+  const list=await res.json();
+  document.getElementById('settl-tbody').innerHTML=list.map(s=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${s.id}</td>
+    <td>${s.name}</td>
+    <td><button class="btn btn-sm-edit" onclick="editSettl(${s.id},'${s.name}')">Ред.</button>
+        <button class="btn btn-sm-del" onclick="delSettl(${s.id})">Удал.</button></td>
+  </tr>`).join('');
+}
+function openSettlForm(){document.getElementById('s-id').value='';document.getElementById('s-name').value='';document.getElementById('settl-form').classList.add('open');}
+function closeSettlForm(){document.getElementById('settl-form').classList.remove('open');}
+function editSettl(id,name){document.getElementById('s-id').value=id;document.getElementById('s-name').value=name;document.getElementById('settl-form').classList.add('open');}
+async function saveSettlement(){
+  const id=document.getElementById('s-id').value;
+  const name=document.getElementById('s-name').value;
+  const res=await fetch(id?`/admin/settlements/${id}`:'/admin/settlements',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(res.ok){closeSettlForm();loadSettlements();snack('Сохранено');}
+}
+async function delSettl(id){if(!confirm('Удалить поселение?'))return;await fetch(`/admin/settlements/${id}`,{method:'DELETE'});loadSettlements();snack('Удалено');}
+
+// ── УЛИЦЫ ──
+async function loadStreets(){
+  const res=await fetch('/admin/streets');
+  const list=await res.json();
+  document.getElementById('streets-tbody').innerHTML=list.map(s=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${s.id}</td>
+    <td>${s.settlement_name}</td>
+    <td>${s.name}</td>
+    <td><button class="btn btn-sm-edit" onclick="editStreet(${s.id},${s.settlement_id},'${s.name}')">Ред.</button>
+        <button class="btn btn-sm-del" onclick="delStreet(${s.id})">Удал.</button></td>
+  </tr>`).join('');
+}
+async function loadSettlsForSelect(selId,val){
+  const res=await fetch('/tickets/settlements');
+  const list=await res.json();
+  const sel=document.getElementById(selId);
+  sel.innerHTML=list.map(s=>`<option value="${s.id}"${s.id==val?' selected':''}>${s.name}</option>`).join('');
+}
+function openStreetForm(){loadSettlsForSelect('str-settlement');document.getElementById('str-id').value='';document.getElementById('str-name').value='';document.getElementById('street-form').classList.add('open');}
+function closeStreetForm(){document.getElementById('street-form').classList.remove('open');}
+function editStreet(id,sid,name){loadSettlsForSelect('str-settlement',sid);document.getElementById('str-id').value=id;document.getElementById('str-name').value=name;document.getElementById('street-form').classList.add('open');}
+async function saveStreet(){
+  const id=document.getElementById('str-id').value;
+  const data={settlement_id:parseInt(document.getElementById('str-settlement').value),name:document.getElementById('str-name').value};
+  const res=await fetch(id?`/admin/streets/${id}`:'/admin/streets',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(res.ok){closeStreetForm();loadStreets();snack('Сохранено');}
+}
+async function delStreet(id){if(!confirm('Удалить улицу?'))return;await fetch(`/admin/streets/${id}`,{method:'DELETE'});loadStreets();snack('Удалено');}
+
+// ── ДОМА ──
+async function loadHouses(){
+  const res=await fetch('/admin/houses');
+  const list=await res.json();
+  document.getElementById('houses-tbody').innerHTML=list.map(h=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${h.id}</td>
+    <td>${h.settlement_name}</td>
+    <td>${h.street_name}</td>
+    <td>${h.number}</td>
+    <td><button class="btn btn-sm-edit" onclick="editHouse(${h.id},${h.street_id},'${h.number}')">Ред.</button>
+        <button class="btn btn-sm-del" onclick="delHouse(${h.id})">Удал.</button></td>
+  </tr>`).join('');
+}
+async function loadStreetsForSelect(selId,val){
+  const res=await fetch('/admin/streets');
+  const list=await res.json();
+  const sel=document.getElementById(selId);
+  sel.innerHTML=list.map(s=>`<option value="${s.id}"${s.id==val?' selected':''}>${s.settlement_name} — ${s.name}</option>`).join('');
+}
+function openHouseForm(){loadStreetsForSelect('h-street');document.getElementById('h-id').value='';document.getElementById('h-number').value='';document.getElementById('house-form').classList.add('open');}
+function closeHouseForm(){document.getElementById('house-form').classList.remove('open');}
+function editHouse(id,sid,num){loadStreetsForSelect('h-street',sid);document.getElementById('h-id').value=id;document.getElementById('h-number').value=num;document.getElementById('house-form').classList.add('open');}
+async function saveHouse(){
+  const id=document.getElementById('h-id').value;
+  const data={street_id:parseInt(document.getElementById('h-street').value),number:document.getElementById('h-number').value};
+  const res=await fetch(id?`/admin/houses/${id}`:'/admin/houses',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(res.ok){closeHouseForm();loadHouses();snack('Сохранено');}
+}
+async function delHouse(id){if(!confirm('Удалить дом?'))return;await fetch(`/admin/houses/${id}`,{method:'DELETE'});loadHouses();snack('Удалено');}
+
+// ── КВАРТИРЫ ──
+async function loadApts(){
+  const res=await fetch('/admin/apartments');
+  const list=await res.json();
+  document.getElementById('apts-tbody').innerHTML=list.map(a=>`<tr>
+    <td style="font-size:12px;color:var(--text-secondary)">${a.id}</td>
+    <td style="font-size:12px">${a.full_address}</td>
+    <td>${a.number}</td>
+    <td>${a.phone||'—'}</td>
+    <td><button class="btn btn-sm-edit" onclick="editApt(${a.id},${a.house_id},'${a.number}','${a.phone||''}')">Ред.</button>
+        <button class="btn btn-sm-del" onclick="delApt(${a.id})">Удал.</button></td>
+  </tr>`).join('');
+}
+async function loadHousesForSelect(selId,val){
+  const res=await fetch('/admin/houses');
+  const list=await res.json();
+  const sel=document.getElementById(selId);
+  sel.innerHTML=list.map(h=>`<option value="${h.id}"${h.id==val?' selected':''}>${h.settlement_name} — ${h.street_name} — ${h.number}</option>`).join('');
+}
+function openAptForm(){loadHousesForSelect('apt-house');document.getElementById('apt-id').value='';document.getElementById('apt-number').value='';document.getElementById('apt-phone').value='';document.getElementById('apt-form').classList.add('open');}
+function closeAptForm(){document.getElementById('apt-form').classList.remove('open');}
+function editApt(id,hid,num,phone){loadHousesForSelect('apt-house',hid);document.getElementById('apt-id').value=id;document.getElementById('apt-number').value=num;document.getElementById('apt-phone').value=phone;document.getElementById('apt-form').classList.add('open');}
+async function saveApt(){
+  const id=document.getElementById('apt-id').value;
+  const data={house_id:parseInt(document.getElementById('apt-house').value),number:document.getElementById('apt-number').value,phone:document.getElementById('apt-phone').value||null};
+  const res=await fetch(id?`/admin/apartments/${id}`:'/admin/apartments',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(res.ok){closeAptForm();loadApts();snack('Сохранено');}
+}
+async function delApt(id){if(!confirm('Удалить квартиру?'))return;await fetch(`/admin/apartments/${id}`,{method:'DELETE'});loadApts();snack('Удалено');}
+
+// ── BACKUP ──
+async function exportDb(){
+  const res=await fetch('/admin/export-db');
+  const data=await res.json();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download=`dispatch_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  snack('База данных экспортирована');
+}
+async function importDb(){
+  const file=document.getElementById('import-file').files[0];
+  if(!file){snack('Выберите файл');return;}
+  const fd=new FormData(); fd.append('file',file);
+  const res=await fetch('/admin/import-db',{method:'POST',body:fd});
+  if(res.ok)snack('База данных импортирована');
+  else showMsg('Ошибка импорта','err');
 }
 
-function renderTicketTable(tickets) {
-    const tbody = document.querySelector('#ticketsTable tbody');
-    tbody.innerHTML = tickets.map(t => `
-        <tr>
-            <td>${t.id}</td>
-            <td>${t.title}</td>
-            <td><span class="status-badge status-${t.status}">${t.status}</span></td>
-            <td>${t.priority}</td>
-            <td>${t.type}</td>
-            <td>${new Date(t.created_at).toLocaleDateString('ru-RU')}</td>
-            <td>
-                <button class="btn btn-delete" onclick="deleteTicket(${t.id})">Удал.</button>
-            </td>
-        </tr>
-    `).join('');
+async function logout(){
+  await fetch('/auth/logout',{method:'POST'});
+  localStorage.removeItem('user'); window.location.href='/';
 }
-
-function sortTickets(field) {
-    if (ticketSortField === field) ticketSortDir *= -1;
-    else { ticketSortField = field; ticketSortDir = -1; }
-    applyTicketFilters();
-}
-
-function resetTicketFilters() {
-    document.getElementById('ticket-filter-status').value = '';
-    document.getElementById('ticket-filter-type').value = '';
-    document.getElementById('ticket-filter-search').value = '';
-    applyTicketFilters();
-}
-        async function deleteTicket(id) {
-            if (!confirm('Удалить заявку?')) return;
-            try {
-                const res = await fetch(`/admin/tickets/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Заявка удалена', 'success');
-                    loadTickets();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
-
-        // ПОСЕЛЕНИЯ
-        async function loadSettlements() {
-            try {
-                const res = await fetch('/tickets/settlements');
-                const settlements = await res.json();
-                const tbody = document.querySelector('#settlementsTable tbody');
-                tbody.innerHTML = settlements.map(s => `
-                    <tr>
-                        <td>${s.id}</td>
-                        <td>${s.name}</td>
-                        <td>
-                            <button class="btn btn-edit" onclick="editSettlement(${s.id}, '${s.name}')">Ред.</button>
-                            <button class="btn btn-delete" onclick="deleteSettlement(${s.id})">Удал.</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch(err) {
-                showMessage('Ошибка загрузки поселений', 'error');
-            }
-        }
-
-        function openSettlementForm() {
-            document.getElementById('settlementForm').classList.add('active');
-            document.getElementById('settlementId').value = '';
-            document.getElementById('settlementName').value = '';
-        }
-
-        function closeSettlementForm() {
-            document.getElementById('settlementForm').classList.remove('active');
-        }
-
-        function editSettlement(id, name) {
-            document.getElementById('settlementId').value = id;
-            document.getElementById('settlementName').value = name;
-            document.getElementById('settlementForm').classList.add('active');
-        }
-
-        async function saveSettlement(e) {
-            e.preventDefault();
-            const id = document.getElementById('settlementId').value;
-            const name = document.getElementById('settlementName').value;
-
-            try {
-                const method = id ? 'PUT' : 'POST';
-                const url = id ? `/admin/settlements/${id}` : '/admin/settlements';
-                const res = await fetch(url, {
-                    method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ name })
-                });
-                if (await handleResponse(res, 'Поселение сохранено', 'Ошибка сохранения поселения')) {
-                    closeSettlementForm();
-                    loadSettlements();
-                }
-            } catch(err) {
-                showMessage(`Ошибка: ${err.message}`, 'error');
-            }
-        }
-
-        async function deleteSettlement(id) {
-            if (!confirm('Удалить поселение?')) return;
-            try {
-                const res = await fetch(`/admin/settlements/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Поселение удалено', 'success');
-                    loadSettlements();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
-
-        // УЛИЦЫ
-        async function loadStreets() {
-            try {
-                const res = await fetch('/admin/streets');
-                const streets = await res.json();
-                const tbody = document.querySelector('#streetsTable tbody');
-                tbody.innerHTML = streets.map(s => `
-                    <tr>
-                        <td>${s.id}</td>
-                        <td>${s.settlement_name}</td>
-                        <td>${s.name}</td>
-                        <td>
-                            <button class="btn btn-edit" onclick="editStreet(${s.id}, ${s.settlement_id}, '${s.name}')">Ред.</button>
-                            <button class="btn btn-delete" onclick="deleteStreet(${s.id})">Удал.</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch(err) {
-                showMessage('Ошибка загрузки улиц', 'error');
-            }
-        }
-
-        async function loadStreetsForForm() {
-            try {
-                const res = await fetch('/tickets/settlements');
-                const settlements = await res.json();
-                const select = document.getElementById('streetSettlement');
-                select.innerHTML = settlements.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-            } catch(err) {
-                console.error(err);
-            }
-        }
-
-        function openStreetForm() {
-            loadStreetsForForm();
-            document.getElementById('streetForm').classList.add('active');
-            document.getElementById('streetId').value = '';
-            document.getElementById('streetName').value = '';
-        }
-
-        function closeStreetForm() {
-            document.getElementById('streetForm').classList.remove('active');
-        }
-
-        function editStreet(id, settlementId, name) {
-            loadStreetsForForm();
-            document.getElementById('streetId').value = id;
-            document.getElementById('streetSettlement').value = settlementId;
-            document.getElementById('streetName').value = name;
-            document.getElementById('streetForm').classList.add('active');
-        }
-
-        async function saveStreet(e) {
-            e.preventDefault();
-            const id = document.getElementById('streetId').value;
-            const data = {
-                settlement_id: parseInt(document.getElementById('streetSettlement').value),
-                name: document.getElementById('streetName').value
-            };
-
-            try {
-                const method = id ? 'PUT' : 'POST';
-                const url = id ? `/admin/streets/${id}` : '/admin/streets';
-                const res = await fetch(url, {
-                    method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                if (await handleResponse(res, 'Улица сохранена', 'Ошибка сохранения улицы')) {
-                    closeStreetForm();
-                    loadStreets();
-                }
-            } catch(err) {
-                showMessage(`Ошибка: ${err.message}`, 'error');
-            }
-        }
-
-        async function deleteStreet(id) {
-            if (!confirm('Удалить улицу?')) return;
-            try {
-                const res = await fetch(`/admin/streets/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Улица удалена', 'success');
-                    loadStreets();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
-
-        // ДОМА
-        async function loadHouses() {
-            try {
-                const res = await fetch('/admin/houses');
-                const houses = await res.json();
-                const tbody = document.querySelector('#housesTable tbody');
-                tbody.innerHTML = houses.map(h => `
-                    <tr>
-                        <td>${h.id}</td>
-                        <td>${h.street_name}</td>
-                        <td>${h.number}</td>
-                        <td>
-                            <button class="btn btn-edit" onclick="editHouse(${h.id}, ${h.street_id}, '${h.number}')">Ред.</button>
-                            <button class="btn btn-delete" onclick="deleteHouse(${h.id})">Удал.</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch(err) {
-                showMessage('Ошибка загрузки домов', 'error');
-            }
-        }
-
-        async function loadStreetsForHouseForm() {
-            try {
-                const res = await fetch('/admin/streets');
-                const streets = await res.json();
-                const select = document.getElementById('houseStreet');
-                select.innerHTML = streets.map(s => `<option value="${s.id}">${s.settlement_name} - ${s.name}</option>`).join('');
-            } catch(err) {
-                console.error(err);
-            }
-        }
-
-        function openHouseForm() {
-            loadStreetsForHouseForm();
-            document.getElementById('houseForm').classList.add('active');
-            document.getElementById('houseId').value = '';
-            document.getElementById('houseNumber').value = '';
-        }
-
-        function closeHouseForm() {
-            document.getElementById('houseForm').classList.remove('active');
-        }
-
-        function editHouse(id, streetId, number) {
-            loadStreetsForHouseForm();
-            document.getElementById('houseId').value = id;
-            document.getElementById('houseStreet').value = streetId;
-            document.getElementById('houseNumber').value = number;
-            document.getElementById('houseForm').classList.add('active');
-        }
-
-        async function saveHouse(e) {
-            e.preventDefault();
-            const id = document.getElementById('houseId').value;
-            const data = {
-                street_id: parseInt(document.getElementById('houseStreet').value),
-                number: document.getElementById('houseNumber').value
-            };
-
-            try {
-                const method = id ? 'PUT' : 'POST';
-                const url = id ? `/admin/houses/${id}` : '/admin/houses';
-                const res = await fetch(url, {
-                    method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                if (await handleResponse(res, 'Дом сохранен', 'Ошибка сохранения дома')) {
-                    closeHouseForm();
-                    loadHouses();
-                }
-            } catch(err) {
-                showMessage(`Ошибка: ${err.message}`, 'error');
-            }
-        }
-
-        async function deleteHouse(id) {
-            if (!confirm('Удалить дом?')) return;
-            try {
-                const res = await fetch(`/admin/houses/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Дом удален', 'success');
-                    loadHouses();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
-
-        // АДРЕСА
-        async function loadAddresses() {
-            try {
-                const res = await fetch('/admin/addresses');
-                const addresses = await res.json();
-                const tbody = document.querySelector('#addressesTable tbody');
-                tbody.innerHTML = addresses.map(a => `
-                    <tr>
-                        <td>${a.id}</td>
-                        <td>${a.house_address}</td>
-                        <td>${a.apartment || '-'}</td>
-                        <td>${a.phone || '-'}</td>
-                        <td>
-                            <button class="btn btn-edit" onclick="editAddress(${a.id}, ${a.house_id}, '${a.apartment || ''}', '${a.phone || ''}')">Ред.</button>
-                            <button class="btn btn-delete" onclick="deleteAddress(${a.id})">Удал.</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch(err) {
-                showMessage('Ошибка загрузки адресов', 'error');
-            }
-        }
-
-        async function loadHousesForAddressForm() {
-            try {
-                const res = await fetch('/admin/houses');
-                const houses = await res.json();
-                const select = document.getElementById('addressHouse');
-                select.innerHTML = houses.map(h => `<option value="${h.id}">${h.settlement_name} - ${h.street_name} - ${h.number}</option>`).join('');
-            } catch(err) {
-                console.error(err);
-            }
-        }
-
-        function openAddressForm() {
-            loadHousesForAddressForm();
-            document.getElementById('addressForm').classList.add('active');
-            document.getElementById('addressId').value = '';
-            document.getElementById('addressApartment').value = '';
-            document.getElementById('addressPhone').value = '';
-        }
-
-        function closeAddressForm() {
-            document.getElementById('addressForm').classList.remove('active');
-        }
-
-        function editAddress(id, houseId, apartment, phone) {
-            loadHousesForAddressForm();
-            document.getElementById('addressId').value = id;
-            document.getElementById('addressHouse').value = houseId;
-            document.getElementById('addressApartment').value = apartment;
-            document.getElementById('addressPhone').value = phone;
-            document.getElementById('addressForm').classList.add('active');
-        }
-
-        async function saveAddress(e) {
-            e.preventDefault();
-            const id = document.getElementById('addressId').value;
-            const data = {
-                house_id: parseInt(document.getElementById('addressHouse').value),
-                apartment: document.getElementById('addressApartment').value,
-                phone: document.getElementById('addressPhone').value
-            };
-
-            try {
-                const method = id ? 'PUT' : 'POST';
-                const url = id ? `/admin/addresses/${id}` : '/admin/addresses';
-                const res = await fetch(url, {
-                    method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) {
-                    showMessage('Адрес сохранен', 'success');
-                    closeAddressForm();
-                    loadAddresses();
-                }
-            } catch(err) {
-                showMessage('Ошибка', 'error');
-            }
-        }
-
-        async function deleteAddress(id) {
-            if (!confirm('Удалить адрес?')) return;
-            try {
-                const res = await fetch(`/admin/addresses/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showMessage('Адрес удален', 'success');
-                    loadAddresses();
-                }
-            } catch(err) {
-                showMessage('Ошибка удаления', 'error');
-            }
-        }
-
-        // ЭКСПОРТ / ИМПОРТ EXCEL
-        let selectedImportFile = null;
-
-        async function exportExcel() {
-            const btn = document.getElementById('exportBtn');
-            btn.textContent = '⏳ Формируется файл...';
-            btn.disabled = true;
-            try {
-                const res = await fetch('/admin/export-excel');
-                if (!res.ok) {
-                    const err = await res.json();
-                    showMessage('Ошибка экспорта: ' + (err.detail || res.status), 'error');
-                    return;
-                }
-                const blob = await res.blob();
-                const disposition = res.headers.get('Content-Disposition') || '';
-                const match = disposition.match(/filename=([^\s;]+)/);
-                const filename = match ? match[1] : 'dispatch_db.xlsx';
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-                showMessage('✅ Файл успешно скачан: ' + filename, 'success');
-            } catch(err) {
-                showMessage('Ошибка: ' + err.message, 'error');
-            } finally {
-                btn.textContent = '📊 Скачать базу данных (.xlsx)';
-                btn.disabled = false;
-            }
-        }
-
-        function handleFileSelect(input) {
-            if (input.files && input.files[0]) {
-                selectedImportFile = input.files[0];
-                showSelectedFile(selectedImportFile.name);
-            }
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            document.getElementById('dropZone').style.background = '';
-            const file = e.dataTransfer.files[0];
-            if (!file) return;
-            if (!file.name.endsWith('.xlsx')) {
-                showMessage('Файл должен быть в формате .xlsx', 'error');
-                return;
-            }
-            selectedImportFile = file;
-            showSelectedFile(file.name);
-        }
-
-        function showSelectedFile(name) {
-            document.getElementById('selectedFileName').textContent = name;
-            document.getElementById('selectedFile').style.display = 'block';
-            document.getElementById('importBtn').style.display = 'inline-block';
-        }
-
-        function clearFile() {
-            selectedImportFile = null;
-            document.getElementById('importFile').value = '';
-            document.getElementById('selectedFile').style.display = 'none';
-            document.getElementById('importBtn').style.display = 'none';
-        }
-
-        async function importExcel() {
-            if (!selectedImportFile) {
-                showMessage('Выберите файл для импорта', 'error');
-                return;
-            }
-            if (!confirm('Импортировать данные из файла? Существующие записи будут заменены.')) return;
-
-            const btn = document.getElementById('importBtn');
-            btn.textContent = '⏳ Загружается...';
-            btn.disabled = true;
-
-            try {
-                const formData = new FormData();
-                formData.append('file', selectedImportFile);
-                const res = await fetch('/admin/import-excel', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    const tables = (data.tables || []).map(t => ({
-                        users: 'Пользователи', tickets: 'Заявки',
-                        settlements: 'Поселения', streets: 'Улицы',
-                        houses: 'Дома', apartments: 'Квартиры',
-                        comments: 'Комментарии', messages: 'Сообщения'
-                    }[t] || t)).join(', ');
-                    showMessage(`✅ ${data.message}. Листы: ${tables}`, 'success');
-                    clearFile();
-                } else {
-                    showMessage('Ошибка импорта: ' + (data.detail || 'неизвестная ошибка'), 'error');
-                }
-            } catch(err) {
-                showMessage('Ошибка: ' + err.message, 'error');
-            } finally {
-                btn.textContent = '⬆️ Загрузить в базу данных';
-                btn.disabled = false;
-            }
-        }
-
-        function logout() {
-            fetch('/auth/logout', { method: 'POST' }).then(() => {
-                localStorage.removeItem('user');
-                window.location.href = '/';
-            });
-        }
-    </script>
+</script>
 </body>
 </html>

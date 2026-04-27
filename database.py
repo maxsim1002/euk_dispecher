@@ -123,6 +123,36 @@ def init_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_executors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            assigned_by INTEGER,
+            FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (assigned_by) REFERENCES users(id),
+            UNIQUE(ticket_id, user_id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ticket_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticket_id INTEGER NOT NULL,
+            changed_by INTEGER NOT NULL,
+            change_type TEXT NOT NULL,
+            field_name TEXT,
+            old_value TEXT,
+            new_value TEXT,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+            FOREIGN KEY (changed_by) REFERENCES users(id)
+        )
+    ''')
+
     from passlib.hash import bcrypt
     cursor.execute(
     "INSERT OR IGNORE INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)",
@@ -131,6 +161,84 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+    # Run migration for existing data
+    migrate_existing_tickets()
+
+
+def migrate_existing_tickets():
+    """Миграция существующих исполнителей из assigned_to в ticket_executors"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        # Найти все заявки с assigned_to != NULL
+        tickets = cursor.execute("""
+            SELECT id, assigned_to, updated_at, created_by
+            FROM tickets
+            WHERE assigned_to IS NOT NULL
+        """).fetchall()
+
+        for ticket in tickets:
+            # Получить админа для логирования (используется при отсутствии created_by)
+            admin = cursor.execute("SELECT id FROM users WHERE role='admin' LIMIT 1").fetchone()
+            admin_id = admin['id'] if admin else 1
+
+            changed_by = ticket['created_by'] if ticket['created_by'] is not None else admin_id
+
+            # Добавить запись в ticket_executors
+            cursor.execute("""
+                INSERT OR IGNORE INTO ticket_executors
+                (ticket_id, user_id, assigned_at, assigned_by)
+                VALUES (?, ?, ?, ?)
+            """, (ticket['id'], ticket['assigned_to'],
+                  ticket['updated_at'], ticket['created_by']))
+
+            # Логировать в ticket_history (историческое назначение)
+            cursor.execute("""
+                INSERT OR IGNORE INTO ticket_history
+                (ticket_id, changed_by, change_type, field_name,
+                 new_value, description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (ticket['id'], changed_by, 'assignment', 'executor',
+                  str(ticket['assigned_to']),
+                  '[MIGRATION] Legacy assigned_to migrated to ticket_executors',
+                  ticket['updated_at']))
+
+        # Логировать создание всех заявок (для полной истории)
+        all_tickets = cursor.execute("""
+            SELECT id, created_by, created_at
+            FROM tickets
+        """).fetchall()
+
+        # Получить админа для логирования
+        admin = cursor.execute("SELECT id FROM users WHERE role='admin' LIMIT 1").fetchone()
+        admin_id = admin['id'] if admin else 1
+
+        for ticket in all_tickets:
+            # Проверить, есть ли уже запись о создании
+            existing = cursor.execute("""
+                SELECT id FROM ticket_history
+                WHERE ticket_id = ? AND change_type = 'ticket_created'
+            """, (ticket['id'],)).fetchone()
+
+            if not existing:
+                changed_by = ticket['created_by'] if ticket['created_by'] is not None else admin_id
+                cursor.execute("""
+                    INSERT INTO ticket_history
+                    (ticket_id, changed_by, change_type,
+                     description, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (ticket['id'], changed_by, 'ticket_created',
+                      '[MIGRATION] Ticket creation logged',
+                      ticket['created_at']))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
 
 
 def export_db():
@@ -146,7 +254,7 @@ def export_db():
         'tables': {}
     }
     
-    tables = ['users', 'tickets', 'settlements', 'streets', 'houses', 'apartments', 'comments', 'messages']
+    tables = ['users', 'tickets', 'settlements', 'streets', 'houses', 'apartments', 'comments', 'messages', 'ticket_executors', 'ticket_history']
     
     for table in tables:
         try:
@@ -177,6 +285,8 @@ def import_db(data):
         'streets':     {'id', 'settlement_id'},
         'houses':      {'id', 'street_id'},
         'apartments':  {'id', 'house_id'},
+        'ticket_executors': {'id', 'ticket_id', 'user_id', 'assigned_by'},
+        'ticket_history': {'id', 'ticket_id', 'changed_by'},
     }
 
     def coerce(table, col, val):
