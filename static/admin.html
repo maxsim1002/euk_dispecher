@@ -419,24 +419,33 @@ input[type="file"] {
   </div>
 
   <!-- ─── ИМПОРТ/ЭКСПОРТ ─── -->
+     
   <div id="sec-backup" style="display:none">
     <div class="panel">
       <div class="panel-toolbar"><span class="panel-title">Резервное копирование</span></div>
       <div class="backup-grid">
         <div class="backup-block">
-          <h3>Экспорт данных</h3>
-          <p>Скачать всю базу данных в формате JSON для резервной копии.</p>
-          <button class="btn btn-primary" onclick="exportDb()" style="align-self:flex-start">Скачать JSON</button>
+          <h3>Экспорт данных (Excel)</h3>
+          <p>Скачать всю базу данных в формате Excel.</p>
+          <button class="btn btn-primary" onclick="exportExcel()" style="align-self:flex-start">Скачать Excel</button>
         </div>
         <div class="backup-block">
-          <h3>Импорт данных</h3>
-          <p>Восстановить базу данных из ранее сохранённого JSON-файла.</p>
-          <input type="file" id="import-file" accept=".json" />
-          <button class="btn btn-primary" onclick="importDb()" style="align-self:flex-start">Загрузить</button>
+          <h3>Импорт данных (Excel)</h3>
+          <p>Восстановить базу данных из Excel-файла.</p>
+          <input type="file" id="import-excel-file" accept=".xlsx" />
+          <button class="btn btn-primary" onclick="importExcel()" style="align-self:flex-start">Загрузить</button>
         </div>
       </div>
     </div>
   </div>
+  
+  
+ 
+
+
+
+
+
 
 </div>
 
@@ -676,24 +685,55 @@ async function saveApt(){
 }
 async function delApt(id){if(!confirm('Удалить квартиру?'))return;await fetch(`/admin/apartments/${id}`,{method:'DELETE'});loadApts();snack('Удалено');}
 
-// ── BACKUP ──
-async function exportDb(){
-  const res=await fetch('/admin/export-db');
-  const data=await res.json();
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-  a.download=`dispatch_backup_${new Date().toISOString().slice(0,10)}.json`;
+
+// ── BACKUP (Excel) ──
+async function exportExcel() {
+  const res = await fetch('/admin/export-excel', { credentials: 'include' });
+  if (!res.ok) { showMsg('Ошибка экспорта', 'err'); return; }
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const now = new Date();
+  const dateStr = now.getFullYear() + 
+    String(now.getMonth()+1).padStart(2,'0') + 
+    String(now.getDate()).padStart(2,'0') + '_' +
+    String(now.getHours()).padStart(2,'0') + 
+    String(now.getMinutes()).padStart(2,'0');
+  a.download = `dispatch_backup_${dateStr}.xlsx`;
   a.click();
-  snack('База данных экспортирована');
+  snack('База экспортирована в Excel');
 }
-async function importDb(){
-  const file=document.getElementById('import-file').files[0];
-  if(!file){snack('Выберите файл');return;}
-  const fd=new FormData(); fd.append('file',file);
-  const res=await fetch('/admin/import-db',{method:'POST',body:fd});
-  if(res.ok)snack('База данных импортирована');
-  else showMsg('Ошибка импорта','err');
+
+async function importExcel() {
+  const file = document.getElementById('import-excel-file').files[0];
+  if (!file) { snack('Выберите файл'); return; }
+  if (!file.name.endsWith('.xlsx')) { showMsg('Файл должен быть .xlsx', 'err'); return; }
+  if (!confirm('ВНИМАНИЕ! Импорт перезапишет текущие данные. Продолжить?')) return;
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/admin/import-excel', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      snack('Импортировано таблиц: ' + (data.tables ? data.tables.length : '?'));
+      // Обновить активную вкладку, если нужно
+      if (document.getElementById('sec-users').style.display !== 'none') loadUsers();
+      if (document.getElementById('sec-tickets').style.display !== 'none') loadTickets();
+      // ... можно добавить другие вкладки при необходимости
+    } else {
+      const err = await res.json();
+      showMsg(err.detail || 'Ошибка импорта', 'err');
+    }
+  } catch (e) {
+    showMsg('Ошибка импорта: ' + e.message, 'err');
+  }
 }
+
 
 async function logout(){
   await fetch('/auth/logout',{method:'POST'});
