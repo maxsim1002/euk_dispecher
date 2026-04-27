@@ -310,7 +310,8 @@ async function init() {
 
 async function loadTicket() {
   const res = await fetch(`/tickets/${ticketId}`, { credentials:'include' });
-  ticket = await res.json();
+  const data = await res.json();
+  ticket = data.ticket;
 
   document.getElementById('header-title').textContent = `Заявка #${ticket.id}`;
   document.getElementById('ticket-title').textContent = ticket.title;

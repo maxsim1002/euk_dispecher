@@ -304,14 +304,14 @@ input[type="file"] {
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
-            <th onclick="sortTickets('id')">ID</th>
-            <th onclick="sortTickets('title')">Заголовок</th>
-            <th onclick="sortTickets('status')">Статус</th>
-            <th onclick="sortTickets('type')">Тип</th>
-            <th onclick="sortTickets('priority')">Приоритет</th>
-            <th onclick="sortTickets('created_at')">Создана</th>
-            <th>Действия</th>
-          </tr></thead>
+              <th onclick="sortTickets('id')">ID</th>
+              <th onclick="sortTickets('description')">Описание</th>
+              <th onclick="sortTickets('title')">Заголовок</th>
+              <th onclick="sortTickets('created_at')">Создана</th>
+              <th onclick="sortTickets('updated_at')">Обновлена</th>
+              <th onclick="sortTickets('report')">Отчёт</th>
+              <th>Действия</th>
+            </tr></thead>
           <tbody id="tickets-tbody"></tbody>
         </table>
       </div>
@@ -552,7 +552,7 @@ function applyTicketFilters() {
   const s=document.getElementById('t-search').value.toLowerCase();
   const st=document.getElementById('t-status-filter').value;
   const ty=document.getElementById('t-type-filter').value;
-  if(s) f=f.filter(t=>t.title.toLowerCase().includes(s));
+  if(s) f=f.filter(t=>(t.title||'').toLowerCase().includes(s)||(t.description||'').toLowerCase().includes(s)||(t.report||'').toLowerCase().includes(s));
   if(st) f=f.filter(t=>t.status===st);
   if(ty) f=f.filter(t=>t.type===ty);
   f.sort((a,b)=>{
@@ -562,11 +562,11 @@ function applyTicketFilters() {
   document.getElementById('tickets-count').textContent=`${f.length} из ${allTickets.length}`;
   document.getElementById('tickets-tbody').innerHTML=f.length?f.map(t=>`<tr>
     <td style="font-size:12px;color:var(--text-secondary)">${t.id}</td>
-    <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</td>
-    <td><span class="chip chip-${t.status}">${SL[t.status]||t.status}</span></td>
-    <td>${t.type||'Прочие'}</td>
-    <td>${PL[t.priority]||t.priority}</td>
+    <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.description || '—'}</td>
+    <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title || '—'}</td>
     <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap">${new Date(t.created_at).toLocaleDateString('ru')}</td>
+    <td style="font-size:12px;color:var(--text-secondary);white-space:nowrap">${t.updated_at ? new Date(t.updated_at).toLocaleDateString('ru') : '—'}</td>
+    <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.report || '—'}</td>
     <td><button class="btn btn-sm-del" onclick="delTicket(${t.id})">Удал.</button></td>
   </tr>`).join(''):`<tr><td colspan="7" class="empty-td">Заявок не найдено</td></tr>`;
 }

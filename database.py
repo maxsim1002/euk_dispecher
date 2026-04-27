@@ -275,6 +275,23 @@ def import_db(data):
     """Импортировать БД из Excel/JSON"""
     import sqlite3
 
+    # Дефолтные значения для текстовых полей с NOT NULL без DEFAULT в схеме
+    TEXT_NOT_NULL_DEFAULTS = {
+        'users': {
+            'username': 'unknown', 'password': '', 'full_name': 'Unknown', 'role': 'executor'
+        },
+        'tickets': {
+            'title': '', 'description': '', 'status': 'new', 'priority': 'normal', 'type': 'Прочие'
+        },
+        'settlements': {'name': ''},
+        'streets': {'name': ''},
+        'houses': {'number': ''},
+        'apartments': {'number': ''},
+        'comments': {'text': ''},
+        'messages': {'text': ''},
+        'ticket_executors': {},
+        'ticket_history': {'change_type': ''}
+    }
     # Поля INTEGER по таблицам — пустая строка '' должна стать NULL
     INTEGER_FIELDS = {
         'tickets':     {'id', 'created_by', 'assigned_to'},
@@ -316,6 +333,11 @@ def import_db(data):
 
             for i, row in enumerate(rows):
                 values = [coerce(table_name, col, row.get(col)) for col in columns]
+                                # Заменяем None на дефолтные значения для NOT NULL текстовых полей
+                table_defaults = TEXT_NOT_NULL_DEFAULTS.get(table_name, {})
+                for idx, col in enumerate(columns):
+                    if values[idx] is None and col in table_defaults:
+                        values[idx] = table_defaults[col]
                 try:
                     cursor.execute(
                         f"INSERT OR REPLACE INTO {table_name} ({columns_str}) VALUES ({placeholders})",

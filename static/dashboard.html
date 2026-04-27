@@ -188,26 +188,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
   font-size: 11px; font-weight: 700;
 }
 
-/* Mobile: список */
-.m-list { display: flex; flex-direction: column; }
-.m-item {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-}
-.m-item:last-child { border-bottom: none; }
-.m-item:hover { background: var(--bg); }
-.m-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.m-item-title { font-size: 13px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.m-item-bottom { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.m-item-meta { font-size: 11px; color: var(--text-secondary); }
-
-/* Desktop: таблица */
-.d-table { display: none; width: 100%; border-collapse: collapse; }
-@media (min-width: 768px) {
-  .m-list { display: none; }
-  .d-table { display: table; }
-}
+/* Таблица */
+.tbl-wrap { overflow-x: auto; }
+.d-table { width: 100%; border-collapse: collapse; font-size: 13px; display: table; }
 .d-table thead { background: #FAFAFA; }
 .d-table th {
   padding: 9px 12px; text-align: left;
@@ -220,13 +203,26 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
 .d-table th:hover { color: var(--primary); }
 .d-table th.sorted { color: var(--primary); }
 .d-table td {
-  padding: 9px 12px; font-size: 13px;
-  border-bottom: 1px solid var(--border); vertical-align: middle;
+  padding: 9px 12px; vertical-align: middle;
+  border-bottom: 1px solid var(--border);
 }
 .d-table tr:last-child td { border-bottom: none; }
 .d-table tbody tr { cursor: pointer; }
 .d-table tbody tr:hover { background: var(--bg); }
 .tid { color: var(--primary); font-weight: 600; font-size: 12px; }
+
+/* Колонки, скрываемые на мобильных */
+.col-type, .col-status, .col-priority, .col-assignee {
+  /* по умолчанию показываются */
+}
+@media (max-width: 767px) {
+  .col-type,
+  .col-status,
+  .col-priority,
+  .col-assignee {
+    display: none;
+  }
+}
 
 /* Статус-чипы */
 .chip {
@@ -244,9 +240,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
 .prio-high   { color: #F57C00; font-weight: 600; }
 .prio-critical{ color: #C62828; font-weight: 700; }
 
-.empty-row td, .empty-cell {
-  text-align: center; padding: 32px; color: #BDBDBD; font-size: 13px;
-}
+.empty-row td { text-align: center; padding: 32px; color: #BDBDBD; font-size: 13px; }
 
 /* ── FAB ── */
 .fab {
@@ -523,23 +517,25 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); font
         <span class="tickets-toolbar-title">Заявки</span>
         <span class="count-badge" id="count-badge">0</span>
       </div>
-      <!-- Mobile -->
-      <div class="m-list" id="m-list"></div>
-      <!-- Desktop -->
-      <table class="d-table" id="d-table">
-        <thead>
-          <tr>
-            <th onclick="sortBy('id')" id="th-id">#</th>
-            <th onclick="sortBy('title')" id="th-title">Адрес</th>
-            <th onclick="sortBy('type')" id="th-type">Тип</th>
-            <th onclick="sortBy('created_at')" id="th-date">Создана</th>
-            <th onclick="sortBy('status')" id="th-status">Статус</th>
-            <th onclick="sortBy('priority')" id="th-prio">Приоритет</th>
-            <th onclick="sortBy('assigned_to')" id="th-asn">Исполнитель</th>
-          </tr>
-        </thead>
-        <tbody id="d-tbody"></tbody>
-      </table>
+      <div class="tbl-wrap">
+        <table class="d-table" id="d-table">
+			<thead>
+			  <tr>
+				<th onclick="sortBy('id')" id="th-id">#</th>
+				<th onclick="sortBy('description')" id="th-desc">Описание</th>
+				<th onclick="sortBy('title')" id="th-title">Заголовок</th>
+				<th onclick="sortBy('created_at')" id="th-date">Создана</th>
+				<th onclick="sortBy('report')" id="th-report">Отчёт</th>
+				<th onclick="sortBy('updated_at')" id="th-updated">Обновлена</th>
+				<th class="col-assignee" onclick="sortBy('assigned_to')" id="th-assignee">Исполнитель</th>
+				<th class="col-type" onclick="sortBy('type')" id="th-type">Тип</th>
+				<th class="col-status" onclick="sortBy('status')" id="th-status">Статус</th>
+				<th class="col-priority" onclick="sortBy('priority')" id="th-prio">Приоритет</th>
+			  </tr>
+			</thead>
+          <tbody id="d-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -707,6 +703,7 @@ async function loadUsers() {
   const res = await fetch('/auth/users', { credentials:'include' });
   allUsers = await res.json();
   const sel = document.getElementById('filter-assignee');
+  sel.innerHTML = '<option value="">Все</option>';
   allUsers.forEach(u => {
     const o = document.createElement('option');
     o.value = u.id; o.textContent = u.full_name; sel.appendChild(o);
@@ -830,47 +827,35 @@ function applyFilters() {
   });
 
   document.getElementById('count-badge').textContent = f.length;
-  renderMobile(f);
-  renderDesktop(f);
+  renderTable(f);
 }
 
 function chip(status) {
   return `<span class="chip chip-${status}">${SL[status]||status}</span>`;
 }
 
-function renderMobile(tickets) {
-  const el = document.getElementById('m-list');
-  if (!tickets.length) { el.innerHTML = '<div class="empty-cell">Заявок не найдено</div>'; return; }
-  el.innerHTML = tickets.map(t => {
-    const d = new Date(t.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return `<div class="m-item" onclick="location.href='/static/ticket.html?id=${t.id}'">
-      <div class="m-item-top">
-        <span class="m-item-title">${t.title}</span>
-        ${chip(t.status)}
-      </div>
-      <div class="m-item-bottom">
-        <span class="m-item-meta">#${t.id}</span>
-        <span class="m-item-meta">${t.type||'Прочие'}</span>
-        <span class="m-item-meta">${d}</span>
-        <span class="prio-${t.priority}">${PL[t.priority]||t.priority}</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderDesktop(tickets) {
+function renderTable(tickets) {
   const el = document.getElementById('d-tbody');
-  if (!tickets.length) { el.innerHTML = '<tr class="empty-row"><td colspan="7">Заявок не найдено</td></tr>'; return; }
+  if (!tickets.length) {
+    el.innerHTML = '<tr class="empty-row"><td colspan="10">Заявок не найдено</td></tr>';
+    return;
+  }
   el.innerHTML = tickets.map(t => {
-    const d = new Date(t.created_at).toLocaleString('ru',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const created = new Date(t.created_at).toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const updated = t.updated_at ? new Date(t.updated_at).toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const desc = t.description || '—';
+    const report = t.report || '—';
     return `<tr onclick="location.href='/static/ticket.html?id=${t.id}'">
-      <td class="tid">#${t.id}</td>
-      <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</td>
-      <td>${t.type||'Прочие'}</td>
-      <td style="color:var(--text-secondary);font-size:12px;white-space:nowrap">${d}</td>
-      <td>${chip(t.status)}</td>
-      <td><span class="prio-${t.priority}">${PL[t.priority]||t.priority}</span></td>
-      <td style="font-size:12px;color:var(--text-secondary)">${getUserName(t.assigned_to)}</td>
+      <td class="tid" style="max-width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${t.id}</td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${desc}</td>
+      <td style="max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.title}</td>
+      <td style="max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-secondary);font-size:12px">${created}</td>
+      <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${report}</td>
+      <td style="max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;color:var(--text-secondary)">${updated}</td>
+      <td class="col-assignee" style="font-size:12px;color:var(--text-secondary)">${getUserName(t.assigned_to)}</td>
+      <td class="col-type">${t.type||'Прочие'}</td>
+      <td class="col-status">${chip(t.status)}</td>
+      <td class="col-priority"><span class="prio-${t.priority}">${PL[t.priority]||t.priority}</span></td>
     </tr>`;
   }).join('');
 }
@@ -878,7 +863,11 @@ function renderDesktop(tickets) {
 function sortBy(field) {
   if (sortField===field) sortDir*=-1; else { sortField=field; sortDir=-1; }
   document.querySelectorAll('.d-table th').forEach(th => th.classList.remove('sorted'));
-  const map={id:'th-id',title:'th-title',type:'th-type',created_at:'th-date',status:'th-status',priority:'th-prio',assigned_to:'th-asn'};
+	const map = {
+	  id:'th-id', description:'th-desc', title:'th-title', created_at:'th-date',
+	  report:'th-report', updated_at:'th-updated', assigned_to:'th-assignee',
+	  type:'th-type', status:'th-status', priority:'th-prio'
+	};
   if (map[field]) document.getElementById(map[field])?.classList.add('sorted');
   applyFilters();
 }
